@@ -1,0 +1,12 @@
+FloorTile_A_Clean
+
+这是去掉 MTL 自动材质引用的干净版 2m×2m 单块地板。
+不要复制旧的 .meta 文件，让 Unity 自动生成新的 .meta。
+
+Unity 使用：
+1. 新建 Assets/Models/FloorClean 文件夹。
+2. 只拖入 FloorTile_A_Clean.obj。
+3. 选中 OBJ：Scale Factor 设为 1；法线选 Import；切线选 Calculate Mikktspace；点击 Apply。
+4. 拖入场景，Transform 设为位置 0,0,0；旋转 0,0,0；缩放 1,1,1。
+5. 新建 URP/Lit 材质，先只设置浅灰基础颜色，不挂任何贴图。
+6. 确认不再变紫后，再依次添加 BaseColor、Normal、Metallic/AO。

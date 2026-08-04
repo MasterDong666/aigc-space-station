@@ -1,0 +1,20 @@
+# Centered single floor tile extracted from Structural asset.obj
+# Original file units are centimeters; keep Unity 'Convert Units' enabled.
+o FloorTile_A_Clean
+g FloorTile_A_Clean
+
+v 1.00000000 0.00000000 1.00000000
+v -1.00000000 -0.00000031 -1.00000000
+v -1.00000000 0.00000000 1.00000000
+v 1.00000000 -0.00000031 -1.00000000
+
+vt 0.92749400 0.76179800 0.00000000
+vt 0.98296100 0.70633000 0.00000000
+vt 0.98296100 0.76179800 0.00000000
+vt 0.92749400 0.70633000 0.00000000
+
+vn 0.00000000 1.00000000 -0.00000016
+
+s off
+f 1/1/1 2/2/1 3/3/1
+f 1/1/1 4/4/1 2/2/1
