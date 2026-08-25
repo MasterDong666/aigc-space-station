@@ -208,8 +208,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b843f2fec7a804188ae0d89f0224075f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  walkSpeed: 5
-  sprintSpeed: 8
+  walkSpeed: 2.8
+  sprintSpeed: 4.5
   groundAcceleration: 24
   airControl: 0.35
   jumpHeight: 1.5
