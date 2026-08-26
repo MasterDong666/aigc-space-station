@@ -9,6 +9,7 @@ public static class OrbitConsoleColliderSetup
     private const string MvpScenePath =
         "Assets/Scenes/SpaceStationHub_MVP.unity";
     private const string ConsoleName = "OrbitControlConsole";
+    private const string ConsoleRendererName = "Object_22";
     private const string BaseColliderName =
         "OrbitConsolePhysical_Base";
     private const string ScreenColliderName =
@@ -37,6 +38,23 @@ public static class OrbitConsoleColliderSetup
             return;
         }
 
+        Renderer consoleRenderer = FindConsoleRenderer(console.transform);
+
+        if (consoleRenderer == null)
+        {
+            Debug.LogError(
+                "轨道控制台：没有找到对应的 GLB Renderer " +
+                ConsoleRendererName + "。"
+            );
+            return;
+        }
+
+        Undo.RecordObject(
+            console.transform,
+            "Align orbit console interaction anchor"
+        );
+        console.transform.position = consoleRenderer.bounds.center;
+
         BoxCollider interactionCollider =
             console.GetComponent<BoxCollider>();
 
@@ -50,20 +68,20 @@ public static class OrbitConsoleColliderSetup
             "Configure orbit console interaction volume"
         );
         interactionCollider.isTrigger = true;
-        interactionCollider.center = new Vector3(0f, 0.18f, 0f);
-        interactionCollider.size = new Vector3(0.34f, 1.95f, 1.4f);
+        interactionCollider.center = new Vector3(0f, 0.05f, 0f);
+        interactionCollider.size = new Vector3(0.58f, 1.42f, 0.78f);
 
         BoxCollider baseCollider = ConfigurePhysicalCollider(
             console.transform,
             BaseColliderName,
-            new Vector3(0f, -0.42f, 0f),
-            new Vector3(0.5f, 1.55f, 0.5f)
+            new Vector3(0f, -0.33f, 0f),
+            new Vector3(0.44f, 0.58f, 0.5f)
         );
         BoxCollider screenCollider = ConfigurePhysicalCollider(
             console.transform,
             ScreenColliderName,
-            new Vector3(0f, 0.48f, 0f),
-            new Vector3(0.42f, 0.72f, 0.86f)
+            new Vector3(0f, 0.25f, 0f),
+            new Vector3(0.48f, 0.65f, 0.64f)
         );
 
         EditorUtility.SetDirty(interactionCollider);
@@ -74,7 +92,7 @@ public static class OrbitConsoleColliderSetup
 
         Selection.activeGameObject = console;
         Debug.Log(
-            "轨道控制台：已扩大正面交互区，并添加底座与屏幕实体碰撞。",
+            "轨道控制台：已对齐 Object_22，并更新交互区与实体碰撞。",
             console
         );
     }
@@ -82,7 +100,7 @@ public static class OrbitConsoleColliderSetup
     [MenuItem(
         "Tools/Earth Reshaping/Interaction/Validate Orbit Console (Play Mode)",
         false,
-        20
+        21
     )]
     private static void ValidateInPlayMode()
     {
@@ -91,11 +109,16 @@ public static class OrbitConsoleColliderSetup
             Object.FindObjectOfType<PlayerInteractor>();
         CharacterController characterController =
             Object.FindObjectOfType<CharacterController>();
+        Camera playerCamera =
+            interactor == null
+                ? null
+                : interactor.GetComponentInChildren<Camera>();
 
         if (
             console == null ||
             interactor == null ||
-            characterController == null
+            characterController == null ||
+            playerCamera == null
         )
         {
             Debug.LogError(
@@ -107,6 +130,7 @@ public static class OrbitConsoleColliderSetup
 
         BoxCollider interactionCollider =
             console.GetComponent<BoxCollider>();
+        Renderer consoleRenderer = FindConsoleRenderer(console.transform);
         BoxCollider[] physicalColliders = console
             .GetComponentsInChildren<BoxCollider>(true)
             .Where(collider => !collider.isTrigger)
@@ -115,23 +139,132 @@ public static class OrbitConsoleColliderSetup
         bool interactionReady =
             interactionCollider != null &&
             interactionCollider.isTrigger &&
-            interactionCollider.size.y >= 1.9f &&
-            interactionCollider.size.z >= 1.35f;
+            interactionCollider.size.y >= 1.4f &&
+            interactionCollider.size.z >= 0.75f;
+        bool anchorAligned =
+            consoleRenderer != null &&
+            Vector3.Distance(
+                console.transform.position,
+                consoleRenderer.bounds.center
+            ) <= 0.02f;
         bool physicalReady = physicalColliders.Length >= 2;
         bool sweepBlocked = physicalReady &&
             TestCharacterControllerSweep(
                 characterController,
                 physicalColliders[0]
             );
+        Vector3 screenTarget =
+            consoleRenderer == null
+                ? Vector3.zero
+                : GetScreenTarget(consoleRenderer);
+        bool screenRayHits =
+            consoleRenderer != null &&
+            RayHitsConsole(playerCamera, screenTarget);
+        bool rightSideRayMisses =
+            consoleRenderer != null &&
+            !RayHitsConsole(
+                playerCamera,
+                screenTarget + playerCamera.transform.right * 0.9f
+            );
 
         Debug.Log(
             "轨道控制台验证：" +
             $"interactionReady={interactionReady}, " +
+            $"anchorAligned={anchorAligned}, " +
             $"physicalColliders={physicalColliders.Length}, " +
             $"characterSweepBlocked={sweepBlocked}, " +
+            $"screenRayHits={screenRayHits}, " +
+            $"rightSideRayMisses={rightSideRayMisses}, " +
             $"currentPrompt={interactor.CurrentPrompt}",
             console
         );
+    }
+
+    [MenuItem(
+        "Tools/Earth Reshaping/Interaction/Focus Orbit Console (Play Mode)",
+        false,
+        20
+    )]
+    private static void FocusOrbitConsole()
+    {
+        FocusOrbitConsole(0f);
+    }
+
+    [MenuItem(
+        "Tools/Earth Reshaping/Interaction/Focus Right of Orbit Console (Play Mode)",
+        false,
+        22
+    )]
+    private static void FocusRightOfOrbitConsole()
+    {
+        FocusOrbitConsole(0.9f);
+    }
+
+    private static void FocusOrbitConsole(float horizontalScreenOffset)
+    {
+        GameObject console = FindSceneObject(ConsoleName);
+        PlayerInteractor interactor =
+            Object.FindObjectOfType<PlayerInteractor>();
+        CharacterController controller =
+            Object.FindObjectOfType<CharacterController>();
+
+        if (console == null || interactor == null || controller == null)
+        {
+            Debug.LogError("轨道控制台取景：缺少 Console 或 Player。");
+            return;
+        }
+
+        Renderer consoleRenderer = FindConsoleRenderer(console.transform);
+        Camera playerCamera = interactor.GetComponentInChildren<Camera>();
+        PlayerMovement movement =
+            controller.GetComponent<PlayerMovement>();
+
+        if (consoleRenderer == null || playerCamera == null)
+        {
+            Debug.LogError("轨道控制台取景：缺少 Renderer 或 Camera。");
+            return;
+        }
+
+        Vector3 centerTarget = GetScreenTarget(consoleRenderer);
+        Vector3 playerPosition = new Vector3(
+            centerTarget.x - 1.9f,
+            1.15f,
+            centerTarget.z + 0.35f
+        );
+        Vector3 centerDirection = centerTarget - playerPosition;
+        centerDirection.y = 0f;
+        Vector3 screenRight =
+            Quaternion.LookRotation(centerDirection.normalized) *
+            Vector3.right;
+        Vector3 target =
+            centerTarget + screenRight * horizontalScreenOffset;
+
+        if (movement != null)
+        {
+            movement.enabled = false;
+        }
+
+        controller.enabled = false;
+        controller.transform.position = playerPosition;
+        Vector3 horizontalDirection = target - playerPosition;
+        horizontalDirection.y = 0f;
+        controller.transform.rotation = Quaternion.LookRotation(
+            horizontalDirection.normalized,
+            Vector3.up
+        );
+        controller.enabled = true;
+        Physics.SyncTransforms();
+
+        Vector3 lookDirection =
+            (target - playerCamera.transform.position).normalized;
+        float pitch = -Mathf.Asin(lookDirection.y) * Mathf.Rad2Deg;
+        playerCamera.transform.localRotation = Quaternion.Euler(
+            pitch,
+            0f,
+            0f
+        );
+
+        Debug.Log("轨道控制台取景：准星已对准真实屏幕。", console);
     }
 
     [MenuItem(
@@ -139,6 +272,18 @@ public static class OrbitConsoleColliderSetup
         true
     )]
     private static bool ValidateMenu() => Application.isPlaying;
+
+    [MenuItem(
+        "Tools/Earth Reshaping/Interaction/Focus Orbit Console (Play Mode)",
+        true
+    )]
+    private static bool ValidateFocusMenu() => Application.isPlaying;
+
+    [MenuItem(
+        "Tools/Earth Reshaping/Interaction/Focus Right of Orbit Console (Play Mode)",
+        true
+    )]
+    private static bool ValidateFocusRightMenu() => Application.isPlaying;
 
     private static BoxCollider ConfigurePhysicalCollider(
         Transform parent,
@@ -247,5 +392,48 @@ public static class OrbitConsoleColliderSetup
         }
 
         return null;
+    }
+
+    private static Renderer FindConsoleRenderer(Transform anchor)
+    {
+        return Object.FindObjectsOfType<Renderer>(true)
+            .Where(renderer =>
+                renderer.enabled &&
+                renderer.name == ConsoleRendererName
+            )
+            .OrderBy(renderer =>
+                Vector3.Distance(
+                    renderer.bounds.center,
+                    anchor.position
+                )
+            )
+            .FirstOrDefault();
+    }
+
+    private static Vector3 GetScreenTarget(Renderer consoleRenderer)
+    {
+        return consoleRenderer.bounds.center +
+            Vector3.up * consoleRenderer.bounds.extents.y * 0.45f;
+    }
+
+    private static bool RayHitsConsole(Camera camera, Vector3 target)
+    {
+        Vector3 direction = target - camera.transform.position;
+
+        if (
+            !Physics.Raycast(
+                camera.transform.position,
+                direction.normalized,
+                out RaycastHit hit,
+                2.8f,
+                Physics.DefaultRaycastLayers,
+                QueryTriggerInteraction.Collide
+            )
+        )
+        {
+            return false;
+        }
+
+        return hit.collider.GetComponentInParent<IInteractable>() != null;
     }
 }
