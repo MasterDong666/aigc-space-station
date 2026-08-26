@@ -7,14 +7,26 @@ public struct DialogueLine
     [SerializeField] private string speaker;
     [TextArea(2, 5)]
     [SerializeField] private string text;
+    [SerializeField] private AudioClip voiceClip;
 
     public string Speaker => speaker;
     public string Text => text;
+    public AudioClip VoiceClip => voiceClip;
 
     public DialogueLine(string lineSpeaker, string lineText)
+        : this(lineSpeaker, lineText, null)
+    {
+    }
+
+    public DialogueLine(
+        string lineSpeaker,
+        string lineText,
+        AudioClip lineVoiceClip
+    )
     {
         speaker = lineSpeaker;
         text = lineText;
+        voiceClip = lineVoiceClip;
     }
 }
 

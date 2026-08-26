@@ -17,5 +17,7 @@ MonoBehaviour:
   lines:
   - speaker: "\u6668\u66E6"
     text: "\u751F\u6001\u8425\u517B\u6295\u653E\u5B8C\u6210\u3002\u5730\u8868\u4FEE\u590D\u533A\u57DF\u5F00\u59CB\u51FA\u73B0\u751F\u547D\u4FE1\u53F7\u3002"
+    voiceClip: {fileID: 8300000, guid: 407cb97cc24304bb185301dd11a72206, type: 3}
   - speaker: "\u6668\u66E6"
     text: "\u8BF7\u524D\u5F80\u57FA\u56E0\u57F9\u80B2\u7EC8\u7AEF\uFF0C\u6267\u884C\u4ECA\u65E5\u6700\u540E\u4E00\u9879\u4FEE\u590D\u4EFB\u52A1\u3002"
+    voiceClip: {fileID: 8300000, guid: fa055d70522b946e9ac77b87c4227b10, type: 3}

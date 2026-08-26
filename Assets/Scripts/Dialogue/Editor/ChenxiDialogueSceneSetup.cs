@@ -15,6 +15,9 @@ public static class ChenxiDialogueSceneSetup
     private const string DialogueFolder =
         "Assets/Settings/Dialogue";
 
+    private const string VoiceFolder =
+        "Assets/Arts/Audio/Chenxi";
+
     [MenuItem(
         "Tools/Earth Reshaping/Dialogue/Install Chenxi Dialogue"
     )]
@@ -37,9 +40,18 @@ public static class ChenxiDialogueSceneSetup
             "Chenxi_Intro",
             new[]
             {
-                Line("第七十九任修复官，你好。欢迎抵达归墟同步轨道空间站。"),
-                Line("我是空间站 AI 管家「晨曦」。三项今日修复任务已经就绪。"),
-                Line("请先前往右侧星际轨道控制台，完成轨道巡检。")
+                Line(
+                    "Chenxi_Intro_01",
+                    "第七十九任修复官，你好。欢迎抵达归墟同步轨道空间站。"
+                ),
+                Line(
+                    "Chenxi_Intro_02",
+                    "我是空间站 AI 管家「晨曦」。三项今日修复任务已经就绪。"
+                ),
+                Line(
+                    "Chenxi_Intro_03",
+                    "请先前往右侧星际轨道控制台，完成轨道巡检。"
+                )
             }
         );
 
@@ -47,8 +59,14 @@ public static class ChenxiDialogueSceneSetup
             "Chenxi_OrbitComplete",
             new[]
             {
-                Line("轨道巡检数据已确认。近地轨道能量传输恢复稳定。"),
-                Line("Earth 修复进度已经推进，生态投放终端现已获得授权。")
+                Line(
+                    "Chenxi_OrbitComplete_01",
+                    "轨道巡检数据已确认。近地轨道能量传输恢复稳定。"
+                ),
+                Line(
+                    "Chenxi_OrbitComplete_02",
+                    "Earth 修复进度已经推进，生态投放终端现已获得授权。"
+                )
             }
         );
 
@@ -56,8 +74,14 @@ public static class ChenxiDialogueSceneSetup
             "Chenxi_EcologyComplete",
             new[]
             {
-                Line("生态营养投放完成。地表修复区域开始出现生命信号。"),
-                Line("请前往基因培育终端，执行今日最后一项修复任务。")
+                Line(
+                    "Chenxi_EcologyComplete_01",
+                    "生态营养投放完成。地表修复区域开始出现生命信号。"
+                ),
+                Line(
+                    "Chenxi_EcologyComplete_02",
+                    "请前往基因培育终端，执行今日最后一项修复任务。"
+                )
             }
         );
 
@@ -65,7 +89,10 @@ public static class ChenxiDialogueSceneSetup
             "Chenxi_GeneComplete",
             new[]
             {
-                Line("基因培育任务完成，无人机群已经进入投放序列。")
+                Line(
+                    "Chenxi_GeneComplete_01",
+                    "基因培育任务完成，无人机群已经进入投放序列。"
+                )
             }
         );
 
@@ -73,8 +100,14 @@ public static class ChenxiDialogueSceneSetup
             "Chenxi_AllTasksComplete",
             new[]
             {
-                Line("今日三项修复任务已经全部完成。"),
-                Line("修复官，请看向舷窗——Earth 正在回应我们的努力。")
+                Line(
+                    "Chenxi_AllTasksComplete_01",
+                    "今日三项修复任务已经全部完成。"
+                ),
+                Line(
+                    "Chenxi_AllTasksComplete_02",
+                    "修复官，请看向舷窗——Earth 正在回应我们的努力。"
+                )
             }
         );
 
@@ -99,6 +132,8 @@ public static class ChenxiDialogueSceneSetup
 
         ChenxiDialogueController controller =
             GetOrAddComponent<ChenxiDialogueController>(systemRoot);
+        AudioSource voiceSource = GetOrAddComponent<AudioSource>(systemRoot);
+        ConfigureVoiceSource(voiceSource);
 
         GameObject panel = FindChild(interactionUI, "ChenxiDialoguePanel");
 
@@ -150,6 +185,7 @@ public static class ChenxiDialogueSceneSetup
             Object.FindObjectOfType<PlayerInteractor>(),
             Object.FindObjectOfType<MVPFlowController>()
         );
+        controller.ConfigureVoice(voiceSource);
         controller.ConfigureSequences(
             intro,
             orbitComplete,
@@ -171,6 +207,66 @@ public static class ChenxiDialogueSceneSetup
             systemRoot
         );
     }
+
+    [MenuItem(
+        "Tools/Earth Reshaping/Dialogue/Log Voice Status (Play Mode)",
+        false,
+        30
+    )]
+    private static void LogVoiceStatus()
+    {
+        ChenxiDialogueController controller =
+            Object.FindObjectOfType<ChenxiDialogueController>(true);
+
+        if (controller == null)
+        {
+            Debug.LogWarning("晨曦语音：没有找到对话控制器。");
+            return;
+        }
+
+        Debug.Log(
+            $"晨曦语音：clip={controller.CurrentVoiceClipName}, " +
+            $"playing={controller.IsVoicePlaying}, " +
+            $"time={controller.CurrentVoicePlaybackTime:F2}s",
+            controller
+        );
+    }
+
+    [MenuItem(
+        "Tools/Earth Reshaping/Dialogue/Log Voice Status (Play Mode)",
+        true
+    )]
+    private static bool ValidateLogVoiceStatus() => Application.isPlaying;
+
+    [MenuItem(
+        "Tools/Earth Reshaping/Dialogue/Replay Current Voice (Play Mode)",
+        false,
+        31
+    )]
+    private static void ReplayCurrentVoice()
+    {
+        ChenxiDialogueController controller =
+            Object.FindObjectOfType<ChenxiDialogueController>(true);
+
+        if (controller == null)
+        {
+            Debug.LogWarning("晨曦语音：没有找到对话控制器。");
+            return;
+        }
+
+        bool started = controller.ReplayCurrentVoiceForDevelopment();
+        Debug.Log(
+            $"晨曦语音：重新播放 {controller.CurrentVoiceClipName}, " +
+            $"started={started}",
+            controller
+        );
+    }
+
+    [MenuItem(
+        "Tools/Earth Reshaping/Dialogue/Replay Current Voice (Play Mode)",
+        true
+    )]
+    private static bool ValidateReplayCurrentVoice() => Application.isPlaying;
 
     private static GameObject CreateDialoguePanel(Transform canvasRoot)
     {
@@ -337,9 +433,55 @@ public static class ChenxiDialogueSceneSetup
         return sequence;
     }
 
-    private static DialogueLine Line(string text)
+    private static DialogueLine Line(string clipName, string text)
     {
-        return new DialogueLine("晨曦", text);
+        AudioClip clip = LoadVoiceClip(clipName);
+        return new DialogueLine("晨曦", text, clip);
+    }
+
+    private static AudioClip LoadVoiceClip(string clipName)
+    {
+        string path = $"{VoiceFolder}/{clipName}.wav";
+        AssetDatabase.ImportAsset(
+            path,
+            ImportAssetOptions.ForceSynchronousImport
+        );
+
+        AudioImporter importer =
+            AssetImporter.GetAtPath(path) as AudioImporter;
+
+        if (importer == null)
+        {
+            Debug.LogWarning($"晨曦语音：没有找到 {path}。");
+            return null;
+        }
+
+        AudioImporterSampleSettings settings =
+            importer.defaultSampleSettings;
+        settings.loadType = AudioClipLoadType.CompressedInMemory;
+        settings.compressionFormat = AudioCompressionFormat.Vorbis;
+        settings.quality = 0.72f;
+        settings.sampleRateSetting =
+            AudioSampleRateSetting.OptimizeSampleRate;
+        settings.preloadAudioData = true;
+
+        importer.forceToMono = true;
+        importer.loadInBackground = false;
+        importer.defaultSampleSettings = settings;
+        importer.SaveAndReimport();
+
+        return AssetDatabase.LoadAssetAtPath<AudioClip>(path);
+    }
+
+    private static void ConfigureVoiceSource(AudioSource source)
+    {
+        source.playOnAwake = false;
+        source.loop = false;
+        source.volume = 0.86f;
+        source.pitch = 1f;
+        source.spatialBlend = 0f;
+        source.dopplerLevel = 0f;
+        source.priority = 64;
     }
 
     private static void ConfigurePortraitImporter()

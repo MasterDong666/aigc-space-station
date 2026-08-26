@@ -17,3 +17,4 @@ MonoBehaviour:
   lines:
   - speaker: "\u6668\u66E6"
     text: "\u57FA\u56E0\u57F9\u80B2\u4EFB\u52A1\u5B8C\u6210\uFF0C\u65E0\u4EBA\u673A\u7FA4\u5DF2\u7ECF\u8FDB\u5165\u6295\u653E\u5E8F\u5217\u3002"
+    voiceClip: {fileID: 8300000, guid: 9c57f4f5895c1406eb64393e8466a721, type: 3}

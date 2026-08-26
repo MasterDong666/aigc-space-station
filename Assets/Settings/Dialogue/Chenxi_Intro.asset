@@ -17,7 +17,10 @@ MonoBehaviour:
   lines:
   - speaker: "\u6668\u66E6"
     text: "\u7B2C\u4E03\u5341\u4E5D\u4EFB\u4FEE\u590D\u5B98\uFF0C\u4F60\u597D\u3002\u6B22\u8FCE\u62B5\u8FBE\u5F52\u589F\u540C\u6B65\u8F68\u9053\u7A7A\u95F4\u7AD9\u3002"
+    voiceClip: {fileID: 8300000, guid: 484a5285631e94b55aaa37850ed3f747, type: 3}
   - speaker: "\u6668\u66E6"
     text: "\u6211\u662F\u7A7A\u95F4\u7AD9 AI \u7BA1\u5BB6\u300C\u6668\u66E6\u300D\u3002\u4E09\u9879\u4ECA\u65E5\u4FEE\u590D\u4EFB\u52A1\u5DF2\u7ECF\u5C31\u7EEA\u3002"
+    voiceClip: {fileID: 8300000, guid: 4c9a2e1e5893d47bd8aee420f06316e7, type: 3}
   - speaker: "\u6668\u66E6"
     text: "\u8BF7\u5148\u524D\u5F80\u53F3\u4FA7\u661F\u9645\u8F68\u9053\u63A7\u5236\u53F0\uFF0C\u5B8C\u6210\u8F68\u9053\u5DE1\u68C0\u3002"
+    voiceClip: {fileID: 8300000, guid: 94a61e730c063447fb0f33753b60095b, type: 3}

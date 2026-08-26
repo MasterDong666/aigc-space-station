@@ -18,6 +18,10 @@ public class ChenxiDialogueController : MonoBehaviour
     [SerializeField] private Button advanceButton;
     [SerializeField] private Sprite defaultPortrait;
 
+    [Header("晨曦语音")]
+    [SerializeField] private AudioSource voiceSource;
+    [SerializeField, Range(0f, 1f)] private float voiceVolume = 0.86f;
+
     [Header("场景引用")]
     [SerializeField] private PlayerInteractor playerInteractor;
     [SerializeField] private MVPFlowController flowController;
@@ -52,10 +56,29 @@ public class ChenxiDialogueController : MonoBehaviour
     public string CurrentBodyText =>
         bodyText == null ? string.Empty : bodyText.text;
 
+    public bool IsVoicePlaying =>
+        voiceSource != null && voiceSource.isPlaying;
+
+    public string CurrentVoiceClipName =>
+        voiceSource == null || voiceSource.clip == null
+            ? string.Empty
+            : voiceSource.clip.name;
+
+    public float CurrentVoicePlaybackTime =>
+        voiceSource == null ? 0f : voiceSource.time;
+
     private void Awake()
     {
         ResolveSceneReferences();
         ApplyRuntimeFont();
+
+        if (voiceSource != null)
+        {
+            voiceSource.playOnAwake = false;
+            voiceSource.loop = false;
+            voiceSource.spatialBlend = 0f;
+            voiceSource.volume = voiceVolume;
+        }
 
         if (portraitImage != null)
         {
@@ -112,6 +135,7 @@ public class ChenxiDialogueController : MonoBehaviour
             flowController.AllTasksCompleted -= HandleAllTasksCompleted;
         }
 
+        StopVoice();
         ReleaseOwnedPlayerLock();
     }
 
@@ -191,6 +215,22 @@ public class ChenxiDialogueController : MonoBehaviour
         flowController = flow;
     }
 
+    public void ConfigureVoice(AudioSource source, float volume = 0.86f)
+    {
+        voiceSource = source;
+        voiceVolume = Mathf.Clamp01(volume);
+
+        if (voiceSource == null)
+        {
+            return;
+        }
+
+        voiceSource.playOnAwake = false;
+        voiceSource.loop = false;
+        voiceSource.spatialBlend = 0f;
+        voiceSource.volume = voiceVolume;
+    }
+
     public void ConfigureSequences(
         DialogueSequence intro,
         DialogueSequence orbitComplete,
@@ -204,6 +244,21 @@ public class ChenxiDialogueController : MonoBehaviour
         ecologyCompleteSequence = ecologyComplete;
         geneCompleteSequence = geneComplete;
         allTasksCompleteSequence = allComplete;
+    }
+
+    public bool ReplayCurrentVoiceForDevelopment()
+    {
+        if (
+            currentSequence == null ||
+            currentLineIndex < 0 ||
+            currentLineIndex >= currentSequence.Lines.Length
+        )
+        {
+            return false;
+        }
+
+        PlayVoiceForLine(currentSequence.Lines[currentLineIndex]);
+        return IsVoicePlaying;
     }
 
     private void HandleTaskCompleted(MiniGameId id)
@@ -272,6 +327,7 @@ public class ChenxiDialogueController : MonoBehaviour
             StopCoroutine(typewriterCoroutine);
         }
 
+        PlayVoiceForLine(line);
         typewriterCoroutine = StartCoroutine(TypeLine(line.Text));
     }
 
@@ -350,6 +406,7 @@ public class ChenxiDialogueController : MonoBehaviour
 
     private void EndCurrentSequence()
     {
+        StopVoice();
         currentSequence = null;
         currentLineIndex = 0;
 
@@ -372,6 +429,7 @@ public class ChenxiDialogueController : MonoBehaviour
         }
 
         isTyping = false;
+        StopVoice();
 
         if (dialogueRoot != null)
         {
@@ -400,6 +458,34 @@ public class ChenxiDialogueController : MonoBehaviour
         {
             flowController = FindObjectOfType<MVPFlowController>();
         }
+    }
+
+    private void PlayVoiceForLine(DialogueLine line)
+    {
+        if (voiceSource == null)
+        {
+            return;
+        }
+
+        voiceSource.Stop();
+        voiceSource.clip = line.VoiceClip;
+        voiceSource.volume = voiceVolume;
+
+        if (voiceSource.clip != null)
+        {
+            voiceSource.Play();
+        }
+    }
+
+    private void StopVoice()
+    {
+        if (voiceSource == null)
+        {
+            return;
+        }
+
+        voiceSource.Stop();
+        voiceSource.clip = null;
     }
 
     private void ApplyRuntimeFont()
@@ -441,5 +527,6 @@ public class ChenxiDialogueController : MonoBehaviour
     private void OnValidate()
     {
         characterInterval = Mathf.Max(0f, characterInterval);
+        voiceVolume = Mathf.Clamp01(voiceVolume);
     }
 }
