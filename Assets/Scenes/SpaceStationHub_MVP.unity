@@ -1331,7 +1331,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: c706792c348b14757ac5ae548b89ac88, type: 2}
+  - {fileID: 2100000, guid: deb007998ef1540c08d414808a38eb44, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -1532,6 +1532,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 349005799}
+  - component: {fileID: 349005800}
   m_Layer: 0
   m_Name: EarthSystem
   m_TagString: Untagged
@@ -1555,6 +1556,84 @@ Transform:
   - {fileID: 271799085}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &349005800
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 349005798}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7f4563e4566e4623b854b79da4c7b71f, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  earthRenderer: {fileID: 271799086}
+  earthTransform: {fileID: 271799085}
+  flowController: {fileID: 595439531}
+  transitionDuration: 2.4
+  transitionCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  rotationSpeed: 0.18
+  stages:
+  - label: "0 \u53D7\u635F\u5730\u7403"
+    tint: {r: 0.82, g: 0.78, b: 0.7, a: 1}
+    saturation: 0.1
+    brightness: 0.66
+    contaminationColor: {r: 0.52, g: 0.34, b: 0.17, a: 1}
+    contamination: 0.82
+    atmosphereColor: {r: 0.3, g: 0.11, b: 0.025, a: 1}
+    atmosphereStrength: 0.08
+    fresnelPower: 4.4
+  - label: "1 \u8F68\u9053\u6062\u590D"
+    tint: {r: 0.9, g: 0.91, b: 0.91, a: 1}
+    saturation: 0.38
+    brightness: 0.8
+    contaminationColor: {r: 0.62, g: 0.46, b: 0.27, a: 1}
+    contamination: 0.54
+    atmosphereColor: {r: 0.16, g: 0.48, b: 1.35, a: 1}
+    atmosphereStrength: 0.24
+    fresnelPower: 3.9
+  - label: "2 \u751F\u6001\u6062\u590D"
+    tint: {r: 0.96, g: 0.98, b: 1, a: 1}
+    saturation: 0.72
+    brightness: 0.93
+    contaminationColor: {r: 0.69, g: 0.56, b: 0.36, a: 1}
+    contamination: 0.23
+    atmosphereColor: {r: 0.08, g: 0.66, b: 1.75, a: 1}
+    atmosphereStrength: 0.43
+    fresnelPower: 3.5
+  - label: "3 \u5B8C\u5168\u6062\u590D"
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    saturation: 1
+    brightness: 1.04
+    contaminationColor: {r: 1, g: 1, b: 1, a: 1}
+    contamination: 0
+    atmosphereColor: {r: 0.1, g: 0.8, b: 2.1, a: 1}
+    atmosphereStrength: 0.62
+    fresnelPower: 3.1
 --- !u!1 &360628264
 GameObject:
   m_ObjectHideFlags: 0
