@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ea1db1ad9bee4a258818a5e5d25ee6b0, type: 3}
+  m_Name: Chenxi_OrbitComplete
+  m_EditorClassIdentifier:
+  sequenceId: Chenxi_OrbitComplete
+  lockPlayer: 1
+  lines:
+  - speaker: "\u6668\u66E6"
+    text: "\u8F68\u9053\u5DE1\u68C0\u6570\u636E\u5DF2\u786E\u8BA4\u3002\u8FD1\u5730\u8F68\u9053\u80FD\u91CF\u4F20\u8F93\u6062\u590D\u7A33\u5B9A\u3002"
+  - speaker: "\u6668\u66E6"
+    text: "Earth \u4FEE\u590D\u8FDB\u5EA6\u5DF2\u7ECF\u63A8\u8FDB\uFF0C\u751F\u6001\u6295\u653E\u7EC8\u7AEF\u73B0\u5DF2\u83B7\u5F97\u6388\u6743\u3002"

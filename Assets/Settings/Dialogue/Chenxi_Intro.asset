@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ea1db1ad9bee4a258818a5e5d25ee6b0, type: 3}
+  m_Name: Chenxi_Intro
+  m_EditorClassIdentifier:
+  sequenceId: Chenxi_Intro
+  lockPlayer: 1
+  lines:
+  - speaker: "\u6668\u66E6"
+    text: "\u7B2C\u4E03\u5341\u4E5D\u4EFB\u4FEE\u590D\u5B98\uFF0C\u4F60\u597D\u3002\u6B22\u8FCE\u62B5\u8FBE\u5F52\u589F\u540C\u6B65\u8F68\u9053\u7A7A\u95F4\u7AD9\u3002"
+  - speaker: "\u6668\u66E6"
+    text: "\u6211\u662F\u7A7A\u95F4\u7AD9 AI \u7BA1\u5BB6\u300C\u6668\u66E6\u300D\u3002\u4E09\u9879\u4ECA\u65E5\u4FEE\u590D\u4EFB\u52A1\u5DF2\u7ECF\u5C31\u7EEA\u3002"
+  - speaker: "\u6668\u66E6"
+    text: "\u8BF7\u5148\u524D\u5F80\u53F3\u4FA7\u661F\u9645\u8F68\u9053\u63A7\u5236\u53F0\uFF0C\u5B8C\u6210\u8F68\u9053\u5DE1\u68C0\u3002"
