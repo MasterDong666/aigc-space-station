@@ -2342,6 +2342,8 @@ GameObject:
   - component: {fileID: 464520653}
   - component: {fileID: 464520655}
   - component: {fileID: 464520654}
+  - component: {fileID: 464520657}
+  - component: {fileID: 464520656}
   m_Layer: 0
   m_Name: EcologyDeploymentTerminal
   m_TagString: Untagged
@@ -2381,6 +2383,7 @@ MonoBehaviour:
   panelRoot: {fileID: 806686}
   closeButton: {fileID: 1716644266}
   playerInteractor: {fileID: 214134116}
+  flowLink: {fileID: 0}
 --- !u!65 &464520655
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -2402,6 +2405,41 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.14, y: 0.72, z: 1.18}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &464520656
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 464520652}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d599bab3b124f3da7bf8d4969546723, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  flowLink: {fileID: 0}
+  onCompletionAccepted:
+    m_PersistentCalls:
+      m_Calls: []
+  onCompletionRejected:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &464520657
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 464520652}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f32b24190ca64b2caf1c2158c1a53080, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  miniGameId: 1
+  flowController: {fileID: 595439531}
+  lockedPrompt: "\u7EC8\u7AEF\u5C1A\u672A\u6388\u6743"
+  completedPrompt: "\u4EFB\u52A1\u5DF2\u5B8C\u6210"
 --- !u!1 &519067242
 GameObject:
   m_ObjectHideFlags: 0
@@ -2675,6 +2713,63 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 594812096}
   m_CullTransparentMesh: 1
+--- !u!1 &595439530
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 595439532}
+  - component: {fileID: 595439531}
+  m_Layer: 0
+  m_Name: MVP_GameFlow
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &595439531
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 595439530}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a5fb6c568e214d37857f5c98c31be95e, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  taskOrder: 000000000100000002000000
+  onTaskStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  onTaskCompleted:
+    m_PersistentCalls:
+      m_Calls: []
+  onRepairStageChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  onAllTasksCompleted:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!4 &595439532
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 595439530}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &657607929
 GameObject:
   m_ObjectHideFlags: 0
@@ -4018,6 +4113,8 @@ GameObject:
   - component: {fileID: 1017428246}
   - component: {fileID: 1017428248}
   - component: {fileID: 1017428247}
+  - component: {fileID: 1017428250}
+  - component: {fileID: 1017428249}
   m_Layer: 0
   m_Name: GeneCultivationTerminal
   m_TagString: Untagged
@@ -4057,6 +4154,7 @@ MonoBehaviour:
   panelRoot: {fileID: 594812096}
   closeButton: {fileID: 1459394356}
   playerInteractor: {fileID: 214134116}
+  flowLink: {fileID: 0}
 --- !u!65 &1017428248
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -4078,6 +4176,41 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1.08, y: 0.76, z: 0.14}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &1017428249
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1017428245}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d599bab3b124f3da7bf8d4969546723, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  flowLink: {fileID: 0}
+  onCompletionAccepted:
+    m_PersistentCalls:
+      m_Calls: []
+  onCompletionRejected:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &1017428250
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1017428245}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f32b24190ca64b2caf1c2158c1a53080, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  miniGameId: 2
+  flowController: {fileID: 595439531}
+  lockedPrompt: "\u7EC8\u7AEF\u5C1A\u672A\u6388\u6743"
+  completedPrompt: "\u4EFB\u52A1\u5DF2\u5B8C\u6210"
 --- !u!1 &1024022188
 GameObject:
   m_ObjectHideFlags: 0
@@ -5793,6 +5926,8 @@ GameObject:
   - component: {fileID: 1549922358}
   - component: {fileID: 1549922360}
   - component: {fileID: 1549922359}
+  - component: {fileID: 1549922362}
+  - component: {fileID: 1549922361}
   m_Layer: 0
   m_Name: OrbitControlConsole
   m_TagString: Untagged
@@ -5831,6 +5966,7 @@ MonoBehaviour:
   panelRoot: {fileID: 1769519536}
   closeButton: {fileID: 1617063504}
   playerInteractor: {fileID: 214134116}
+  flowLink: {fileID: 0}
 --- !u!65 &1549922360
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -5852,6 +5988,41 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.18, y: 1.2, z: 0.7}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &1549922361
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1549922357}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d599bab3b124f3da7bf8d4969546723, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  flowLink: {fileID: 0}
+  onCompletionAccepted:
+    m_PersistentCalls:
+      m_Calls: []
+  onCompletionRejected:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &1549922362
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1549922357}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f32b24190ca64b2caf1c2158c1a53080, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  miniGameId: 0
+  flowController: {fileID: 595439531}
+  lockedPrompt: "\u7EC8\u7AEF\u5C1A\u672A\u6388\u6743"
+  completedPrompt: "\u4EFB\u52A1\u5DF2\u5B8C\u6210"
 --- !u!1 &1556659990
 GameObject:
   m_ObjectHideFlags: 0
@@ -8911,3 +9082,4 @@ SceneRoots:
   - {fileID: 1024022190}
   - {fileID: 1671972845}
   - {fileID: 2118577875}
+  - {fileID: 595439532}
