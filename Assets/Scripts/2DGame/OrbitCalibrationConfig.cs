@@ -1,18 +1,24 @@
 using System;
 using UnityEngine;
 
-/// <summary>单个校准参数的取值范围定义（Slider 全程 0~100）。</summary>
+/// <summary>
+/// 单个校准参数的定义。
+/// 指针在 0~100 之间自动 PingPong 移动，玩家在目标区间内点击锁定。
+/// </summary>
 [Serializable]
 public struct CalibrationParam
 {
     [Tooltip("显示名称")]
     public string displayName;
 
-    [Tooltip("正确范围下限")]
+    [Tooltip("目标区间下限")]
     public float minValue;
 
-    [Tooltip("正确范围上限")]
+    [Tooltip("目标区间上限")]
     public float maxValue;
+
+    [Tooltip("指针扫描速度（数值/秒，0→100→0 循环）")]
+    public float scanSpeed;
 
     public bool IsInRange(float value)
     {
@@ -21,7 +27,7 @@ public struct CalibrationParam
 
     public string RangeText
     {
-        get { return string.Format("正确范围 {0:0} ~ {1:0}", minValue, maxValue); }
+        get { return string.Format("目标区间 {0:0} ~ {1:0}", minValue, maxValue); }
     }
 }
 
@@ -41,18 +47,21 @@ public static class OrbitCalibrationConfig
             displayName = "能量配比",
             minValue = 40f,
             maxValue = 60f,
+            scanSpeed = 35f,
         },
         new CalibrationParam
         {
             displayName = "粒子稳定值",
             minValue = 65f,
             maxValue = 80f,
+            scanSpeed = 45f,
         },
         new CalibrationParam
         {
             displayName = "输送倾角",
             minValue = 25f,
             maxValue = 45f,
+            scanSpeed = 55f,
         },
     };
 }
