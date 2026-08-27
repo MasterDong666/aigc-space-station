@@ -1,0 +1,191 @@
+using System;
+using UnityEngine;
+using UnityEngine.UI;
+
+/// <summary>
+/// 主界面：标题 / 身份 / 地球修复进度 / 今日任务 / 预留入口。
+/// 由 GameBootstrap 构建与串联，本类只负责主界面的显示与刷新。
+/// </summary>
+public class MainHubUI : MonoBehaviour
+{
+    /// <summary>点击【星际轨道巡检】时触发。</summary>
+    public event Action OrbitTaskClicked;
+
+    private Text progressValueText;
+    private Image progressFill;
+    private Button orbitButton;
+    private Text orbitButtonLabel;
+
+    private static readonly string[] LockedTaskNames =
+    {
+        "生态营养液投放（开发中）",
+        "基因孢子培育（开发中）",
+    };
+
+    private static readonly string[] ReservedNames =
+    {
+        "诺亚星",
+        "剧情回顾",
+        "最终任务",
+    };
+
+    public void BuildUI()
+    {
+        Image bg = gameObject.AddComponent<Image>();
+        bg.color = UIPalette.Background;
+
+        // 顶部装饰线
+        Image accentLine = UIFactory.CreatePanel("AccentLine", transform, UIPalette.Accent);
+        RectTransform lineRect = accentLine.rectTransform;
+        lineRect.anchorMin = new Vector2(0f, 1f);
+        lineRect.anchorMax = new Vector2(1f, 1f);
+        lineRect.pivot = new Vector2(0.5f, 1f);
+        lineRect.sizeDelta = new Vector2(0f, 6f);
+
+        // 标题
+        Text title = UIFactory.CreateText(
+            "TxtTitle",
+            transform,
+            "《地球重塑计划》",
+            64,
+            UIPalette.TextMain
+        );
+        SetAnchored(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -50f), new Vector2(1100f, 90f));
+
+        // 身份
+        Text identity = UIFactory.CreateText(
+            "TxtIdentity",
+            transform,
+            "第七十九任地球修复官",
+            26,
+            UIPalette.TextDim
+        );
+        SetAnchored(identity.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -140f), new Vector2(800f, 40f));
+
+        // 进度卡片
+        Image card = UIFactory.CreatePanel("ProgressCard", transform, UIPalette.Panel);
+        SetAnchored(card.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -190f), new Vector2(760f, 190f));
+
+        Text progressLabel = UIFactory.CreateText(
+            "TxtProgressLabel",
+            card.transform,
+            "地球修复进度",
+            28,
+            UIPalette.TextDim
+        );
+        SetAnchored(progressLabel.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -18f), new Vector2(600f, 40f));
+
+        progressValueText = UIFactory.CreateText(
+            "TxtProgressValue",
+            card.transform,
+            "10%",
+            52,
+            UIPalette.Accent
+        );
+        SetAnchored(progressValueText.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -58f), new Vector2(600f, 64f));
+
+        UIFactory.CreateProgressBar(
+            "ProgressBar",
+            card.transform,
+            new Vector2(600f, 20f),
+            out progressFill
+        );
+        SetAnchored(progressFill.transform.parent.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -134f), new Vector2(600f, 20f));
+
+        // 今日任务
+        Text taskHeader = UIFactory.CreateText(
+            "TxtTaskHeader",
+            transform,
+            "今日任务",
+            30,
+            UIPalette.Accent
+        );
+        SetAnchored(taskHeader.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -430f), new Vector2(400f, 44f));
+
+        // 任务按钮
+        orbitButton = UIFactory.CreateButton(
+            "BtnOrbit",
+            transform,
+            "星际轨道巡检",
+            new Vector2(520f, 70f),
+            UIPalette.AccentDim,
+            28
+        );
+        SetAnchored(orbitButton.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -490f), new Vector2(520f, 70f));
+        orbitButtonLabel = orbitButton.GetComponentInChildren<Text>();
+        orbitButton.onClick.AddListener(() => OrbitTaskClicked?.Invoke());
+
+        for (int i = 0; i < LockedTaskNames.Length; i++)
+        {
+            Button locked = UIFactory.CreateButton(
+                "BtnLocked" + i,
+                transform,
+                LockedTaskNames[i],
+                new Vector2(520f, 70f),
+                UIPalette.Locked,
+                28
+            );
+            SetAnchored(locked.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -575f - i * 85f), new Vector2(520f, 70f));
+            locked.interactable = false;
+        }
+
+        // 预留入口（Disabled）
+        for (int i = 0; i < ReservedNames.Length; i++)
+        {
+            Button reserved = UIFactory.CreateButton(
+                "BtnReserved_" + ReservedNames[i],
+                transform,
+                ReservedNames[i],
+                new Vector2(240f, 52f),
+                UIPalette.Locked,
+                22
+            );
+            SetAnchored(reserved.GetComponent<RectTransform>(), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2((i - 1) * 260f, 36f), new Vector2(240f, 52f));
+            reserved.interactable = false;
+        }
+    }
+
+    public void Show()
+    {
+        gameObject.SetActive(true);
+        Refresh();
+    }
+
+    public void Hide()
+    {
+        gameObject.SetActive(false);
+    }
+
+    /// <summary>从 GameProgressManager 读取最新进度并刷新界面。</summary>
+    public void Refresh()
+    {
+        GameProgressManager progress = GameProgressManager.Instance;
+        if (progress == null)
+        {
+            return;
+        }
+
+        int value = progress.EarthProgress;
+        progressValueText.text = value + "%";
+        progressFill.fillAmount = value / 100f;
+
+        bool done = progress.IsTaskCompleted(OrbitCalibrationConfig.TaskId);
+        orbitButton.interactable = !done;
+        orbitButtonLabel.text = done ? "星际轨道巡检（已完成）" : "星际轨道巡检";
+    }
+
+    private static void SetAnchored(
+        RectTransform rect,
+        Vector2 anchorMin,
+        Vector2 anchorMax,
+        Vector2 anchoredPosition,
+        Vector2 sizeDelta
+    )
+    {
+        rect.anchorMin = anchorMin;
+        rect.anchorMax = anchorMax;
+        rect.pivot = anchorMin;
+        rect.anchoredPosition = anchoredPosition;
+        rect.sizeDelta = sizeDelta;
+    }
+}
