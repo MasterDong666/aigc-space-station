@@ -10,6 +10,7 @@ public class GameBootstrap : MonoBehaviour
     private MainHubUI mainHub;
     private OrbitTaskController orbitTask;
     private GeneCultivationTaskController geneTask;
+    private EcologyNutrientTaskController ecologyTask;
     private GreenhouseHarvestUI greenhouse;
     private EndingBridgeUI endingBridge;
     private CompletionPopupUI completionPopup;
@@ -45,13 +46,19 @@ public class GameBootstrap : MonoBehaviour
         endingBridge = CreatePanel<EndingBridgeUI>("EndingBridgePanel", canvas.transform);
         endingBridge.BuildUI();
 
+        ecologyTask = CreatePanel<EcologyNutrientTaskController>("EcologyPanel", canvas.transform);
+        ecologyTask.BuildUI();
+
         completionPopup = CreatePanel<CompletionPopupUI>("CompletionPopup", canvas.transform);
         completionPopup.BuildUI();
 
         // 流程串联
         mainHub.OrbitTaskClicked += OpenOrbitTask;
         orbitTask.ReturnRequested += ReturnToMain;
-        orbitTask.ReportSubmitted += ShowCompletionPopup;
+        orbitTask.ReportSubmitted += reward => completionPopup.Show(
+            "今日轨道巡检完成\n地球修复进度 +" + reward + "%",
+            ReturnToMain
+        );
 
         mainHub.GeneCultivationClicked += OpenGeneTask;
         geneTask.ExitRequested += ReturnToMain;
@@ -59,6 +66,13 @@ public class GameBootstrap : MonoBehaviour
         greenhouse.ReturnRequested += ReturnToMain;
         greenhouse.ContinueToEnding += OpenEndingBridge;
         endingBridge.ReturnRequested += ReturnToMain;
+
+        mainHub.EcologyNutrientClicked += OpenEcologyTask;
+        ecologyTask.ExitRequested += ReturnToMain;
+        ecologyTask.ReportSubmitted += reward => completionPopup.Show(
+            "营养液投放完成\n地球修复进度 +" + reward + "%",
+            ReturnToMain
+        );
 
         mainHub.Show();
     }
@@ -87,22 +101,21 @@ public class GameBootstrap : MonoBehaviour
         endingBridge.Show();
     }
 
+    private void OpenEcologyTask()
+    {
+        mainHub.Hide();
+        ecologyTask.OpenTask();
+    }
+
     private void ReturnToMain()
     {
         orbitTask.Hide();
         geneTask.Hide();
+        ecologyTask.Hide();
         greenhouse.Hide();
         endingBridge.Hide();
         mainHub.Show();
         mainHub.Refresh();
-    }
-
-    private void ShowCompletionPopup(int reward)
-    {
-        completionPopup.Show(
-            "今日轨道巡检完成\n地球修复进度 +" + reward + "%",
-            ReturnToMain
-        );
     }
 
     private static T CreatePanel<T>(string name, Transform parent) where T : Component
