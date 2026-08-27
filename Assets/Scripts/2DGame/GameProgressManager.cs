@@ -80,6 +80,12 @@ public class GameProgressManager : MonoBehaviour
             return true;
         }
 
+        if (taskId == EcologyNutrientConfig.TaskId)
+        {
+            id = MiniGameId.EcologyDeployment;
+            return true;
+        }
+
         id = default;
         return false;
     }

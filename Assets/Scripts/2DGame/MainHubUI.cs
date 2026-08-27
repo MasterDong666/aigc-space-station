@@ -14,12 +14,17 @@ public class MainHubUI : MonoBehaviour
     /// <summary>点击【基因孢子培育】时触发。</summary>
     public event Action GeneCultivationClicked;
 
+    /// <summary>点击【生态营养液投放】时触发。</summary>
+    public event Action EcologyNutrientClicked;
+
     private Text progressValueText;
     private Image progressFill;
     private Button orbitButton;
     private Text orbitButtonLabel;
     private Button geneButton;
     private Text geneButtonLabel;
+    private Button nutrientButton;
+    private Text nutrientButtonLabel;
 
     private static readonly string[] ReservedNames =
     {
@@ -127,17 +132,18 @@ public class MainHubUI : MonoBehaviour
         geneButtonLabel = geneButton.GetComponentInChildren<Text>();
         geneButton.onClick.AddListener(() => GeneCultivationClicked?.Invoke());
 
-        // 生态营养液投放（任务2，暂缓开发，保持锁定）
-        Button nutrient = UIFactory.CreateButton(
+        // 生态营养液投放（任务2，本阶段解锁；锁定/已完成状态在 Refresh 中处理）
+        nutrientButton = UIFactory.CreateButton(
             "BtnNutrient",
             transform,
-            "生态营养液投放（开发中）",
+            "生态营养液投放",
             new Vector2(520f, 70f),
-            UIPalette.Locked,
+            UIPalette.AccentDim,
             28
         );
-        SetAnchored(nutrient.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -660f), new Vector2(520f, 70f));
-        nutrient.interactable = false;
+        SetAnchored(nutrientButton.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -660f), new Vector2(520f, 70f));
+        nutrientButtonLabel = nutrientButton.GetComponentInChildren<Text>();
+        nutrientButton.onClick.AddListener(() => EcologyNutrientClicked?.Invoke());
 
         // 预留入口（Disabled）
         for (int i = 0; i < ReservedNames.Length; i++)
@@ -186,6 +192,10 @@ public class MainHubUI : MonoBehaviour
         bool geneDone = progress.IsTaskCompleted(GeneCultivationConfig.TaskId);
         geneButton.interactable = !geneDone;
         geneButtonLabel.text = geneDone ? "基因孢子培育（已完成）" : "基因孢子培育";
+
+        bool nutrientDone = progress.IsTaskCompleted(EcologyNutrientConfig.TaskId);
+        nutrientButton.interactable = !nutrientDone;
+        nutrientButtonLabel.text = nutrientDone ? "生态营养液投放（已完成）" : "生态营养液投放";
     }
 
     private static void SetAnchored(

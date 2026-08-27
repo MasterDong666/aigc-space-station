@@ -51,7 +51,7 @@ public static class MVPFlowSceneSetup
             "EcologyDeploymentTerminal",
             MiniGameId.EcologyDeployment,
             controller,
-            null
+            TwoDGameScenePath
         );
         ConfigureTerminal(
             "GeneCultivationTerminal",
