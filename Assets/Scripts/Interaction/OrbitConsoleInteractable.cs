@@ -11,6 +11,7 @@ public class OrbitConsoleInteractable : MonoBehaviour, IInteractable
     [SerializeField] private Button closeButton;
     [SerializeField] private PlayerInteractor playerInteractor;
     [SerializeField] private MiniGameTerminalFlowLink flowLink;
+    [SerializeField] private MiniGameScenePortal scenePortal;
 
     public string InteractionPrompt =>
         flowLink == null
@@ -29,6 +30,11 @@ public class OrbitConsoleInteractable : MonoBehaviour, IInteractable
         if (flowLink == null)
         {
             flowLink = GetComponent<MiniGameTerminalFlowLink>();
+        }
+
+        if (scenePortal == null)
+        {
+            scenePortal = GetComponent<MiniGameScenePortal>();
         }
 
         if (closeButton != null)
@@ -60,6 +66,24 @@ public class OrbitConsoleInteractable : MonoBehaviour, IInteractable
         if (flowLink != null && !flowLink.TryBegin())
         {
             return;
+        }
+
+        if (scenePortal != null)
+        {
+            if (playerInteractor != null)
+            {
+                playerInteractor.SetPlayerControlLocked(true);
+            }
+
+            if (scenePortal.TryEnter())
+            {
+                return;
+            }
+
+            if (playerInteractor != null)
+            {
+                playerInteractor.SetPlayerControlLocked(false);
+            }
         }
 
         if (panelRoot != null)

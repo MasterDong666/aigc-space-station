@@ -8,4 +8,7 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/SpaceStationHub_MVP.unity
     guid: c97ad3998aee34a2db2795382040552c
+  - enabled: 1
+    path: Assets/Scenes/2DGame/EarthRestoration2D.unity
+    guid: e7d18285b6e07b44e8bec92fad6811b8
   m_configObjects: {}
