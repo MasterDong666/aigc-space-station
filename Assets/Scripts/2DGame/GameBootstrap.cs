@@ -9,10 +9,17 @@ public class GameBootstrap : MonoBehaviour
 {
     private MainHubUI mainHub;
     private OrbitTaskController orbitTask;
+    private GeneCultivationTaskController geneTask;
+    private GreenhouseHarvestUI greenhouse;
+    private EndingBridgeUI endingBridge;
     private CompletionPopupUI completionPopup;
 
     private void Awake()
     {
+        // 编辑器窗口失焦/最小化时保持游戏循环运行；
+        // 否则 Play Mode 帧循环会暂停，协程动画与计时全部停滞。
+        Application.runInBackground = true;
+
         // 全局进度（同一运行内防重复发放）
         GameObject progressGo = new GameObject("GameProgress");
         progressGo.transform.SetParent(transform);
@@ -29,6 +36,15 @@ public class GameBootstrap : MonoBehaviour
         orbitTask = CreatePanel<OrbitTaskController>("OrbitPanel", canvas.transform);
         orbitTask.BuildUI();
 
+        geneTask = CreatePanel<GeneCultivationTaskController>("GenePanel", canvas.transform);
+        geneTask.BuildUI();
+
+        greenhouse = CreatePanel<GreenhouseHarvestUI>("GreenhousePanel", canvas.transform);
+        greenhouse.BuildUI();
+
+        endingBridge = CreatePanel<EndingBridgeUI>("EndingBridgePanel", canvas.transform);
+        endingBridge.BuildUI();
+
         completionPopup = CreatePanel<CompletionPopupUI>("CompletionPopup", canvas.transform);
         completionPopup.BuildUI();
 
@@ -36,6 +52,13 @@ public class GameBootstrap : MonoBehaviour
         mainHub.OrbitTaskClicked += OpenOrbitTask;
         orbitTask.ReturnRequested += ReturnToMain;
         orbitTask.ReportSubmitted += ShowCompletionPopup;
+
+        mainHub.GeneCultivationClicked += OpenGeneTask;
+        geneTask.ExitRequested += ReturnToMain;
+        geneTask.EnterGreenhouse += OpenGreenhouse;
+        greenhouse.ReturnRequested += ReturnToMain;
+        greenhouse.ContinueToEnding += OpenEndingBridge;
+        endingBridge.ReturnRequested += ReturnToMain;
 
         mainHub.Show();
     }
@@ -46,9 +69,30 @@ public class GameBootstrap : MonoBehaviour
         orbitTask.Show();
     }
 
+    private void OpenGeneTask()
+    {
+        mainHub.Hide();
+        geneTask.OpenTask();
+    }
+
+    private void OpenGreenhouse()
+    {
+        geneTask.Hide();
+        greenhouse.Show();
+    }
+
+    private void OpenEndingBridge()
+    {
+        greenhouse.Hide();
+        endingBridge.Show();
+    }
+
     private void ReturnToMain()
     {
         orbitTask.Hide();
+        geneTask.Hide();
+        greenhouse.Hide();
+        endingBridge.Hide();
         mainHub.Show();
         mainHub.Refresh();
     }
