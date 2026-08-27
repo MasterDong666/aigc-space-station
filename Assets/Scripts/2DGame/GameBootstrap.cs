@@ -58,9 +58,9 @@ public class GameBootstrap : MonoBehaviour
         geneTask.EnterGreenhouse += OpenGreenhouse;
         greenhouse.ReturnRequested += ReturnToMain;
         greenhouse.ContinueToEnding += OpenEndingBridge;
-        endingBridge.ReturnRequested += ReturnToMain;
+        endingBridge.ReturnRequested += ReturnToStation;
 
-        mainHub.Show();
+        OpenRequestedTaskOrMainHub();
     }
 
     private void OpenOrbitTask()
@@ -73,6 +73,28 @@ public class GameBootstrap : MonoBehaviour
     {
         mainHub.Hide();
         geneTask.OpenTask();
+    }
+
+    private void OpenRequestedTaskOrMainHub()
+    {
+        if (!MVPGameSession.TryConsumeRequestedMiniGame(out MiniGameId id))
+        {
+            mainHub.Show();
+            return;
+        }
+
+        switch (id)
+        {
+            case MiniGameId.OrbitInspection:
+                OpenOrbitTask();
+                break;
+            case MiniGameId.GeneCultivation:
+                OpenGeneTask();
+                break;
+            default:
+                mainHub.Show();
+                break;
+        }
     }
 
     private void OpenGreenhouse()

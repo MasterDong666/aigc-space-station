@@ -107,7 +107,10 @@ public class ChenxiDialogueController : MonoBehaviour
 
     private void Start()
     {
-        ShowSequence(introSequence);
+        if (MVPGameSession.TryMarkStationIntroSeen())
+        {
+            ShowSequence(introSequence);
+        }
     }
 
     private void Update()

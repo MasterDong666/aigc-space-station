@@ -4025,6 +4025,7 @@ MonoBehaviour:
   closeButton: {fileID: 1716644266}
   playerInteractor: {fileID: 214134116}
   flowLink: {fileID: 0}
+  scenePortal: {fileID: 0}
 --- !u!65 &464520655
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -7336,6 +7337,7 @@ GameObject:
   - component: {fileID: 1017428247}
   - component: {fileID: 1017428250}
   - component: {fileID: 1017428249}
+  - component: {fileID: 1017428251}
   m_Layer: 0
   m_Name: GeneCultivationTerminal
   m_TagString: Untagged
@@ -7376,6 +7378,7 @@ MonoBehaviour:
   closeButton: {fileID: 1459394356}
   playerInteractor: {fileID: 214134116}
   flowLink: {fileID: 0}
+  scenePortal: {fileID: 0}
 --- !u!65 &1017428248
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -7432,6 +7435,19 @@ MonoBehaviour:
   flowController: {fileID: 595439531}
   lockedPrompt: "\u7EC8\u7AEF\u5C1A\u672A\u6388\u6743"
   completedPrompt: "\u4EFB\u52A1\u5DF2\u5B8C\u6210"
+--- !u!114 &1017428251
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1017428245}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed48d0fc81ffe4b998b74d7097d30bfe, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  scenePath: Assets/Scenes/2DGame/EarthRestoration2D.unity
 --- !u!1 &1024022188
 GameObject:
   m_ObjectHideFlags: 0

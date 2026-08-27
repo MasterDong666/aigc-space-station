@@ -20,9 +20,8 @@ public class RepairStageChangedEvent : UnityEvent<int>
 }
 
 /// <summary>
-/// Owns the lightweight MVP task sequence. Mini-games report completion through
-/// MiniGameCompletionRelay; dialogue and Earth visuals can subscribe later.
-/// Progress intentionally resets whenever the MVP scene starts.
+/// Owns the lightweight MVP task sequence. Runtime progress is restored from
+/// MVPGameSession after scene changes so mini-games can return to the station.
 /// </summary>
 [DefaultExecutionOrder(-100)]
 public class MVPFlowController : MonoBehaviour
@@ -96,7 +95,12 @@ public class MVPFlowController : MonoBehaviour
 
     private void Awake()
     {
-        ResetFlow();
+        RestoreFlowFromSession();
+    }
+
+    private void Start()
+    {
+        DispatchPendingCompletion();
     }
 
     public MiniGameTaskState GetTaskState(MiniGameId id)
@@ -123,6 +127,7 @@ public class MVPFlowController : MonoBehaviour
 
         if (state == MiniGameTaskState.InProgress)
         {
+            MVPGameSession.RequestMiniGame(id);
             return true;
         }
 
@@ -132,6 +137,7 @@ public class MVPFlowController : MonoBehaviour
         }
 
         SetTaskState(id, MiniGameTaskState.InProgress);
+        MVPGameSession.RequestMiniGame(id);
         return true;
     }
 
@@ -149,6 +155,8 @@ public class MVPFlowController : MonoBehaviour
 
         SetTaskState(id, MiniGameTaskState.Completed);
         CompletedTaskCount++;
+        MVPGameSession.ReportTaskCompleted(id);
+        MVPGameSession.AcknowledgePendingCompletion(id);
 
         onTaskCompleted.Invoke(id);
         TaskCompleted?.Invoke(id);
@@ -170,19 +178,8 @@ public class MVPFlowController : MonoBehaviour
     [ContextMenu("Reset MVP Flow")]
     public void ResetFlow()
     {
-        initialized = true;
-        taskStates.Clear();
-        CompletedTaskCount = 0;
-
-        IReadOnlyList<MiniGameId> order = GetValidatedTaskOrder();
-
-        for (int index = 0; index < order.Count; index++)
-        {
-            taskStates[order[index]] =
-                index == 0
-                    ? MiniGameTaskState.Available
-                    : MiniGameTaskState.Locked;
-        }
+        MVPGameSession.ResetTaskProgress();
+        RestoreFlowFromSession();
     }
 
     [ContextMenu("Complete Current Task (Development)")]
@@ -228,6 +225,51 @@ public class MVPFlowController : MonoBehaviour
         }
     }
 
+    private void RestoreFlowFromSession()
+    {
+        initialized = true;
+        taskStates.Clear();
+        CompletedTaskCount = 0;
+
+        IReadOnlyList<MiniGameId> order = GetValidatedTaskOrder();
+        bool foundFirstIncomplete = false;
+
+        foreach (MiniGameId id in order)
+        {
+            if (MVPGameSession.IsTaskCompleted(id))
+            {
+                taskStates[id] = MiniGameTaskState.Completed;
+                CompletedTaskCount++;
+                continue;
+            }
+
+            taskStates[id] = foundFirstIncomplete
+                ? MiniGameTaskState.Locked
+                : MiniGameTaskState.Available;
+            foundFirstIncomplete = true;
+        }
+    }
+
+    private void DispatchPendingCompletion()
+    {
+        if (!MVPGameSession.TryConsumePendingCompletion(out MiniGameId id))
+        {
+            return;
+        }
+
+        onTaskCompleted.Invoke(id);
+        TaskCompleted?.Invoke(id);
+
+        onRepairStageChanged.Invoke(RepairStage);
+        RepairStageChanged?.Invoke(RepairStage);
+
+        if (IsFlowComplete)
+        {
+            onAllTasksCompleted.Invoke();
+            AllTasksCompleted?.Invoke();
+        }
+    }
+
     private void SetTaskState(
         MiniGameId id,
         MiniGameTaskState newState
@@ -249,7 +291,7 @@ public class MVPFlowController : MonoBehaviour
     {
         if (!initialized)
         {
-            ResetFlow();
+            RestoreFlowFromSession();
         }
     }
 

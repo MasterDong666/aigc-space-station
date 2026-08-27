@@ -8,6 +8,9 @@ public static class MVPFlowSceneSetup
     private const string MVPScenePath =
         "Assets/Scenes/SpaceStationHub_MVP.unity";
 
+    private const string TwoDGameScenePath =
+        "Assets/Scenes/2DGame/EarthRestoration2D.unity";
+
     [MenuItem(
         "Tools/Earth Reshaping/MVP Flow/Install In Active Scene"
     )]
@@ -41,17 +44,20 @@ public static class MVPFlowSceneSetup
         ConfigureTerminal(
             "OrbitControlConsole",
             MiniGameId.OrbitInspection,
-            controller
+            controller,
+            TwoDGameScenePath
         );
         ConfigureTerminal(
             "EcologyDeploymentTerminal",
             MiniGameId.EcologyDeployment,
-            controller
+            controller,
+            null
         );
         ConfigureTerminal(
             "GeneCultivationTerminal",
             MiniGameId.GeneCultivation,
-            controller
+            controller,
+            TwoDGameScenePath
         );
 
         EditorUtility.SetDirty(controller);
@@ -95,7 +101,8 @@ public static class MVPFlowSceneSetup
     private static void ConfigureTerminal(
         string objectName,
         MiniGameId id,
-        MVPFlowController controller
+        MVPFlowController controller,
+        string scenePath
     )
     {
         GameObject terminal = FindSceneObject(objectName);
@@ -114,6 +121,15 @@ public static class MVPFlowSceneSetup
         GetOrAddComponent<MiniGameCompletionRelay>(terminal);
         Undo.RecordObject(flowLink, "Configure Mini Game Flow Link");
         flowLink.Configure(id, controller);
+
+        if (!string.IsNullOrWhiteSpace(scenePath))
+        {
+            MiniGameScenePortal portal =
+                GetOrAddComponent<MiniGameScenePortal>(terminal);
+            Undo.RecordObject(portal, "Configure Mini Game Scene Portal");
+            portal.Configure(scenePath);
+            EditorUtility.SetDirty(portal);
+        }
 
         EditorUtility.SetDirty(flowLink);
         EditorUtility.SetDirty(terminal);

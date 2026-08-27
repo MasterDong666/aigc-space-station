@@ -30,11 +30,14 @@ public class GameProgressManager : MonoBehaviour
         }
 
         Instance = this;
+        earthProgress += MVPGameSession.CompletedTaskCount * 5;
     }
 
     public bool IsTaskCompleted(string taskId)
     {
-        return completedTasks.Contains(taskId);
+        return completedTasks.Contains(taskId) ||
+            (TryResolveMiniGameId(taskId, out MiniGameId id) &&
+             MVPGameSession.IsTaskCompleted(id));
     }
 
     /// <summary>
@@ -43,14 +46,41 @@ public class GameProgressManager : MonoBehaviour
     /// </summary>
     public bool TryCompleteTask(string taskId, int reward)
     {
-        if (completedTasks.Contains(taskId))
+        if (IsTaskCompleted(taskId))
         {
             return false;
         }
 
         completedTasks.Add(taskId);
+
+        if (TryResolveMiniGameId(taskId, out MiniGameId id))
+        {
+            MVPGameSession.ReportTaskCompleted(id);
+        }
+
         earthProgress += reward;
         ProgressChanged?.Invoke(earthProgress);
         return true;
+    }
+
+    private static bool TryResolveMiniGameId(
+        string taskId,
+        out MiniGameId id
+    )
+    {
+        if (taskId == OrbitCalibrationConfig.TaskId)
+        {
+            id = MiniGameId.OrbitInspection;
+            return true;
+        }
+
+        if (taskId == GeneCultivationConfig.TaskId)
+        {
+            id = MiniGameId.GeneCultivation;
+            return true;
+        }
+
+        id = default;
+        return false;
     }
 }
