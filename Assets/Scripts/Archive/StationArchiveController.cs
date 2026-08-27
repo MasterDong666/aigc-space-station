@@ -45,6 +45,7 @@ public class StationArchiveController : MonoBehaviour
     private ArchiveCategory activeCategory = ArchiveCategory.Civilization;
     private ArchiveEntryData selectedEntry;
     private bool ownsPlayerLock;
+    private bool legacyOfficerArchivesUnlocked;
 
     public bool IsOpen => panelRoot != null && panelRoot.activeSelf;
     public ArchiveCategory ActiveCategory => activeCategory;
@@ -52,6 +53,8 @@ public class StationArchiveController : MonoBehaviour
         selectedEntry == null ? string.Empty : selectedEntry.id;
     public int CurrentUnlockStage =>
         flowController == null ? 3 : flowController.RepairStage;
+    public bool LegacyOfficerArchivesUnlocked =>
+        legacyOfficerArchivesUnlocked;
 
     private void Awake()
     {
@@ -179,6 +182,21 @@ public class StationArchiveController : MonoBehaviour
     public void ShowOfficerCategory()
     {
         ShowCategory(ArchiveCategory.RepairOfficer);
+    }
+
+    public void UnlockLegacyOfficerArchives()
+    {
+        if (legacyOfficerArchivesUnlocked)
+        {
+            return;
+        }
+
+        legacyOfficerArchivesUnlocked = true;
+
+        if (IsOpen)
+        {
+            ShowCategory(activeCategory);
+        }
     }
 
     public void Configure(
@@ -498,7 +516,17 @@ public class StationArchiveController : MonoBehaviour
 
     private bool IsUnlocked(ArchiveEntryData entry)
     {
-        return entry != null && CurrentUnlockStage >= entry.unlockStage;
+        if (entry == null)
+        {
+            return false;
+        }
+
+        bool isLegacyFamilyFile =
+            entry.id == "OFF-077" || entry.id == "OFF-078";
+
+        return
+            CurrentUnlockStage >= entry.unlockStage ||
+            (legacyOfficerArchivesUnlocked && isLegacyFamilyFile);
     }
 
     private void HandleRepairStageChanged(int stage)
