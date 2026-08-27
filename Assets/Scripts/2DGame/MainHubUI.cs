@@ -11,16 +11,15 @@ public class MainHubUI : MonoBehaviour
     /// <summary>点击【星际轨道巡检】时触发。</summary>
     public event Action OrbitTaskClicked;
 
+    /// <summary>点击【基因孢子培育】时触发。</summary>
+    public event Action GeneCultivationClicked;
+
     private Text progressValueText;
     private Image progressFill;
     private Button orbitButton;
     private Text orbitButtonLabel;
-
-    private static readonly string[] LockedTaskNames =
-    {
-        "生态营养液投放（开发中）",
-        "基因孢子培育（开发中）",
-    };
+    private Button geneButton;
+    private Text geneButtonLabel;
 
     private static readonly string[] ReservedNames =
     {
@@ -115,19 +114,30 @@ public class MainHubUI : MonoBehaviour
         orbitButtonLabel = orbitButton.GetComponentInChildren<Text>();
         orbitButton.onClick.AddListener(() => OrbitTaskClicked?.Invoke());
 
-        for (int i = 0; i < LockedTaskNames.Length; i++)
-        {
-            Button locked = UIFactory.CreateButton(
-                "BtnLocked" + i,
-                transform,
-                LockedTaskNames[i],
-                new Vector2(520f, 70f),
-                UIPalette.Locked,
-                28
-            );
-            SetAnchored(locked.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -575f - i * 85f), new Vector2(520f, 70f));
-            locked.interactable = false;
-        }
+        // 基因孢子培育（任务3，本阶段解锁；锁定/已完成状态在 Refresh 中处理）
+        geneButton = UIFactory.CreateButton(
+            "BtnGene",
+            transform,
+            "基因孢子培育",
+            new Vector2(520f, 70f),
+            UIPalette.AccentDim,
+            28
+        );
+        SetAnchored(geneButton.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -575f), new Vector2(520f, 70f));
+        geneButtonLabel = geneButton.GetComponentInChildren<Text>();
+        geneButton.onClick.AddListener(() => GeneCultivationClicked?.Invoke());
+
+        // 生态营养液投放（任务2，暂缓开发，保持锁定）
+        Button nutrient = UIFactory.CreateButton(
+            "BtnNutrient",
+            transform,
+            "生态营养液投放（开发中）",
+            new Vector2(520f, 70f),
+            UIPalette.Locked,
+            28
+        );
+        SetAnchored(nutrient.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -660f), new Vector2(520f, 70f));
+        nutrient.interactable = false;
 
         // 预留入口（Disabled）
         for (int i = 0; i < ReservedNames.Length; i++)
@@ -169,9 +179,13 @@ public class MainHubUI : MonoBehaviour
         progressValueText.text = value + "%";
         progressFill.fillAmount = value / 100f;
 
-        bool done = progress.IsTaskCompleted(OrbitCalibrationConfig.TaskId);
-        orbitButton.interactable = !done;
-        orbitButtonLabel.text = done ? "星际轨道巡检（已完成）" : "星际轨道巡检";
+        bool orbitDone = progress.IsTaskCompleted(OrbitCalibrationConfig.TaskId);
+        orbitButton.interactable = !orbitDone;
+        orbitButtonLabel.text = orbitDone ? "星际轨道巡检（已完成）" : "星际轨道巡检";
+
+        bool geneDone = progress.IsTaskCompleted(GeneCultivationConfig.TaskId);
+        geneButton.interactable = !geneDone;
+        geneButtonLabel.text = geneDone ? "基因孢子培育（已完成）" : "基因孢子培育";
     }
 
     private static void SetAnchored(

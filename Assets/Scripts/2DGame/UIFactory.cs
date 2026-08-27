@@ -14,6 +14,8 @@ public static class UIPalette
     public static readonly Color Ok = Hex("#3DDC97");
     public static readonly Color Warn = Hex("#FF6B6B");
     public static readonly Color Locked = Hex("#46586C");
+    public static readonly Color Suitable = Hex("#1E4D3C");
+    public static readonly Color Unsuitable = Hex("#4A3B44");
 
     private static Color Hex(string hex)
     {
@@ -236,5 +238,36 @@ public static class UIFactory
 
         fillImage = fill;
         return bg;
+    }
+
+    /// <summary>
+    /// 创建媒体占位槽（正式 AI 图片/视频的接入点）。
+    /// 团队美术完成后：替换本节点下的 Placeholder Image 为 RawImage/VideoPlayer，
+    /// 或直接替换整个节点的子内容即可，外层布局不受影响。
+    /// </summary>
+    public static GameObject CreateMediaSlot(
+        string nodeName,
+        string label,
+        Transform parent,
+        Vector2 size
+    )
+    {
+        GameObject root = new GameObject(nodeName, typeof(RectTransform));
+        root.transform.SetParent(parent, false);
+        root.GetComponent<RectTransform>().sizeDelta = size;
+
+        Image bg = CreatePanel("Placeholder", root.transform, UIPalette.Panel);
+        Stretch(bg.rectTransform);
+
+        Text hint = CreateText("Label", root.transform, label, 24, UIPalette.TextDim);
+        Stretch(hint.rectTransform);
+
+        Image line = CreatePanel("AccentLine", root.transform, UIPalette.AccentDim);
+        line.rectTransform.anchorMin = new Vector2(0f, 0f);
+        line.rectTransform.anchorMax = new Vector2(1f, 0f);
+        line.rectTransform.pivot = new Vector2(0.5f, 0f);
+        line.rectTransform.sizeDelta = new Vector2(0f, 3f);
+
+        return root;
     }
 }
