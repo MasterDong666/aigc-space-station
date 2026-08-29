@@ -17,10 +17,22 @@ public class CompletionPopupUI : MonoBehaviour
 
         // 弹窗卡片
         Image card = UIFactory.CreatePanel("PopupCard", transform, UIPalette.Panel);
-        SetAnchored(card.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(760f, 400f));
+        SetAnchored(card.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(780f, 470f));
+        MiniGameVisuals.Round(card);
+
+        Image badge = UIFactory.CreatePanel("SuccessBadge", card.transform, UIPalette.Ok);
+        MiniGameVisuals.MakeCircle(badge);
+        SetAnchored(badge.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -52f), new Vector2(104f, 104f));
+
+        Text check = UIFactory.CreateText("SuccessCheck", badge.transform, "✓", 58, Color.white);
+        UIFactory.Stretch(check.rectTransform);
+        check.fontStyle = FontStyle.Bold;
+
+        Text eyebrow = UIFactory.CreateText("SuccessEyebrow", card.transform, "RESTORATION PROGRESS UPDATED", 18, UIPalette.Ok);
+        SetAnchored(eyebrow.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -166f), new Vector2(620f, 30f));
 
         messageText = UIFactory.CreateText("TxtPopup", card.transform, "", 38, UIPalette.TextMain);
-        SetAnchored(messageText.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -110f), new Vector2(680f, 140f));
+        SetAnchored(messageText.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -202f), new Vector2(680f, 120f));
 
         returnButton = UIFactory.CreateButton(
             "BtnReturn",
@@ -32,6 +44,9 @@ public class CompletionPopupUI : MonoBehaviour
         );
         SetAnchored(returnButton.GetComponent<RectTransform>(), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 60f), new Vector2(300f, 76f));
         returnButton.onClick.AddListener(OnReturnClicked);
+
+        MiniGameVisuals.PolishHierarchy(transform, MiniGameThemeId.Orbit);
+        MiniGameVisuals.AddEntrance(card.gameObject);
 
         gameObject.SetActive(false);
     }

@@ -11,6 +11,11 @@ public class TaskTutorialUI : MonoBehaviour
 {
     private Text titleText;
     private Text bodyText;
+    private Text eyebrowText;
+    private Text symbolText;
+    private Image cardImage;
+    private Image accentImage;
+    private Image symbolBadge;
     private Button continueButton;
     private Action continueAction;
     private MiniGameId currentTask;
@@ -18,13 +23,15 @@ public class TaskTutorialUI : MonoBehaviour
     public void BuildUI()
     {
         Image overlay = gameObject.AddComponent<Image>();
-        overlay.color = new Color(0.005f, 0.015f, 0.03f, 0.92f);
+        overlay.color = new Color(0.005f, 0.015f, 0.03f, 0.97f);
 
         Image card = UIFactory.CreatePanel(
             "TutorialCard",
             transform,
             new Color(0.035f, 0.11f, 0.17f, 0.98f)
         );
+        cardImage = card;
+        MiniGameVisuals.Round(card);
         SetAnchored(
             card.rectTransform,
             new Vector2(0.5f, 0.5f),
@@ -38,6 +45,7 @@ public class TaskTutorialUI : MonoBehaviour
             card.transform,
             UIPalette.Accent
         );
+        accentImage = accent;
         accent.rectTransform.anchorMin = new Vector2(0f, 1f);
         accent.rectTransform.anchorMax = Vector2.one;
         accent.rectTransform.pivot = new Vector2(0.5f, 1f);
@@ -46,11 +54,12 @@ public class TaskTutorialUI : MonoBehaviour
         Text eyebrow = UIFactory.CreateText(
             "Eyebrow",
             card.transform,
-            "CHENXI // 新手操作简报",
+            "晨曦任务简报  ·  FIRST RUN",
             20,
             UIPalette.Accent,
             TextAnchor.MiddleLeft
         );
+        eyebrowText = eyebrow;
         SetAnchored(
             eyebrow.rectTransform,
             new Vector2(0f, 1f),
@@ -74,6 +83,20 @@ public class TaskTutorialUI : MonoBehaviour
             new Vector2(58f, -105f),
             new Vector2(900f, 72f)
         );
+
+        symbolBadge = UIFactory.CreatePanel("TaskSymbolBadge", card.transform, UIPalette.AccentDim);
+        MiniGameVisuals.MakeCircle(symbolBadge);
+        SetAnchored(
+            symbolBadge.rectTransform,
+            new Vector2(1f, 1f),
+            new Vector2(1f, 1f),
+            new Vector2(-116f, -50f),
+            new Vector2(74f, 74f)
+        );
+
+        symbolText = UIFactory.CreateText("TaskSymbol", symbolBadge.transform, "◎", 38, Color.white);
+        UIFactory.Stretch(symbolText.rectTransform);
+        symbolText.fontStyle = FontStyle.Bold;
 
         bodyText = UIFactory.CreateText(
             "Body",
@@ -125,6 +148,9 @@ public class TaskTutorialUI : MonoBehaviour
         );
         continueButton.onClick.AddListener(Continue);
 
+        MiniGameVisuals.PolishHierarchy(transform, MiniGameThemeId.Orbit);
+        MiniGameVisuals.AddEntrance(card.gameObject);
+
         gameObject.SetActive(false);
     }
 
@@ -147,30 +173,48 @@ public class TaskTutorialUI : MonoBehaviour
 
     private void ConfigureCopy(MiniGameId id)
     {
+        MiniGameThemeId themeId = MiniGameThemeId.Orbit;
         switch (id)
         {
             case MiniGameId.OrbitInspection:
-                titleText.text = "任务 01  //  星际轨道巡检";
+                themeId = MiniGameThemeId.Orbit;
+                eyebrowText.text = "晨曦任务简报  ·  ORBIT 01";
+                symbolText.text = "◎";
+                titleText.text = "星际轨道巡检";
                 bodyText.text =
-                    "轨道参数会持续扫描。依次观察能量配比、粒子稳定值与输送倾角，" +
-                    "在指针进入绿色标准区间时锁定参数。\n\n" +
-                    "三项参数全部校准后，提交运维报告即可完成任务。";
+                    "01   观察三项轨道参数的实时扫描\n\n" +
+                    "02   指针进入绿色稳定区时锁定读数\n\n" +
+                    "03   三项校准完成后提交运维报告";
                 break;
             case MiniGameId.EcologyDeployment:
-                titleText.text = "任务 02  //  生态营养液投放";
+                themeId = MiniGameThemeId.Ecology;
+                eyebrowText.text = "晨曦任务简报  ·  ECOLOGY 02";
+                symbolText.text = "✦";
+                titleText.text = "生态营养液投放";
                 bodyText.text =
-                    "先读取地块污染数据，为目标区域选择正确的营养液浓度。" +
-                    "随后拖拽框定投放范围并启动卫星阵列。\n\n" +
-                    "投放结束后查看土壤报告，确认本次修复结果。";
+                    "01   读取污染数据并匹配营养液浓度\n\n" +
+                    "02   在地块中拖拽规划投放范围\n\n" +
+                    "03   启动卫星阵列并确认土壤报告";
                 break;
             case MiniGameId.GeneCultivation:
-                titleText.text = "任务 03  //  基因孢子播撒培育";
+                themeId = MiniGameThemeId.Gene;
+                eyebrowText.text = "晨曦任务简报  ·  GENE 03";
+                symbolText.text = "❈";
+                titleText.text = "基因孢子播撒培育";
                 bodyText.text =
-                    "从基因库调取当前已授权样本，在地图中选择适宜播种区，" +
-                    "再释放无人机群完成播撒。\n\n" +
-                    "等待快速培育流程结束，进入太空大棚完成收获确认。";
+                    "01   从诺亚基因库调取已授权样本\n\n" +
+                    "02   选择适宜区域并释放无人机群\n\n" +
+                    "03   完成快速培育与太空大棚收获";
                 break;
         }
+
+        MiniGameTheme theme = MiniGameVisuals.Theme(themeId);
+        cardImage.color = theme.card;
+        accentImage.color = theme.accent;
+        eyebrowText.color = theme.accent;
+        symbolBadge.color = theme.accent;
+        Image buttonImage = continueButton.GetComponent<Image>();
+        buttonImage.color = Color.Lerp(theme.ink, theme.accent, 0.55f);
     }
 
     private static void SetAnchored(

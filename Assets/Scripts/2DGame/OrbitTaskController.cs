@@ -62,16 +62,29 @@ public class OrbitTaskController : MonoBehaviour
     {
         Image bg = gameObject.AddComponent<Image>();
         bg.color = UIPalette.Background;
+        MiniGameVisuals.PrepareScreen(gameObject, MiniGameThemeId.Orbit);
+
+        MiniGameTheme theme = MiniGameVisuals.Theme(MiniGameThemeId.Orbit);
+
+        Text eyebrow = UIFactory.CreateText(
+            "TxtOrbitEyebrow",
+            transform,
+            "DAILY RESTORATION  ·  轨道稳定协议",
+            20,
+            theme.accent
+        );
+        eyebrow.fontStyle = FontStyle.Bold;
+        SetAnchored(eyebrow.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -28f), new Vector2(900f, 32f));
 
         // 标题
         Text title = UIFactory.CreateText(
             "TxtOrbitTitle",
             transform,
-            "星际轨道巡检运维",
-            48,
+            "星际轨道巡检",
+            52,
             UIPalette.TextMain
         );
-        SetAnchored(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -70f), new Vector2(900f, 70f));
+        SetAnchored(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -60f), new Vector2(900f, 70f));
 
         // 返回按钮（左上角）
         Button back = UIFactory.CreateButton(
@@ -91,9 +104,27 @@ public class OrbitTaskController : MonoBehaviour
             transform,
             "校准进度：0 / 3",
             24,
+            theme.accentWarm
+        );
+        progressText.fontStyle = FontStyle.Bold;
+        SetAnchored(progressText.rectTransform, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-245f, -54f), new Vector2(360f, 42f));
+
+        Image consoleCard = MiniGameVisuals.CreateCard(
+            "OrbitConsoleCard",
+            transform,
+            new Vector2(1120f, 610f),
+            MiniGameThemeId.Orbit
+        );
+        SetAnchored(consoleCard.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -155f), new Vector2(1120f, 610f));
+
+        Text instruction = UIFactory.CreateText(
+            "TxtOrbitInstruction",
+            consoleCard.transform,
+            "观察扫描指针，在它进入发光稳定区时锁定读数",
+            23,
             UIPalette.TextDim
         );
-        SetAnchored(progressText.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -135f), new Vector2(400f, 36f));
+        SetAnchored(instruction.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -18f), new Vector2(900f, 36f));
 
         // 三条参数轨道（自动指针）
         CalibrationParam[] config = OrbitCalibrationConfig.Params;
@@ -102,31 +133,52 @@ public class OrbitTaskController : MonoBehaviour
         for (int i = 0; i < config.Length; i++)
         {
             CalibrationParam param = config[i];
-            float rowY = -200f - i * 170f;
+            float rowY = -72f - i * 168f;
+
+            Image rowCard = MiniGameVisuals.CreateCard(
+                "GaugeCard_" + i,
+                consoleCard.transform,
+                new Vector2(1020f, 142f),
+                MiniGameThemeId.Orbit,
+                true
+            );
+            SetAnchored(rowCard.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, rowY), new Vector2(1020f, 142f));
+
+            Text indexBadge = UIFactory.CreateText(
+                "TxtIndex_" + i,
+                rowCard.transform,
+                "0" + (i + 1),
+                20,
+                theme.accentWarm
+            );
+            indexBadge.fontStyle = FontStyle.Bold;
+            SetAnchored(indexBadge.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(24f, -17f), new Vector2(54f, 34f));
 
             Text nameText = UIFactory.CreateText(
                 "TxtName_" + param.displayName,
-                transform,
+                rowCard.transform,
                 param.displayName,
-                32,
+                28,
                 UIPalette.TextMain,
                 TextAnchor.MiddleLeft
             );
-            SetAnchored(nameText.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(-380f, rowY), new Vector2(320f, 44f));
+            nameText.fontStyle = FontStyle.Bold;
+            SetAnchored(nameText.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(82f, -14f), new Vector2(320f, 42f));
 
             Text valueLabel = UIFactory.CreateText(
                 "TxtValue_" + param.displayName,
-                transform,
+                rowCard.transform,
                 "0",
                 32,
-                UIPalette.Accent,
+                theme.accent,
                 TextAnchor.MiddleRight
             );
-            SetAnchored(valueLabel.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(380f, rowY), new Vector2(160f, 44f));
+            valueLabel.fontStyle = FontStyle.Bold;
+            SetAnchored(valueLabel.rectTransform, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-178f, -14f), new Vector2(150f, 42f));
 
             // 深色轨道背景
-            Image track = UIFactory.CreatePanel("Track_" + param.displayName, transform, UIPalette.PanelLight);
-            SetAnchored(track.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, rowY - 50f), new Vector2(TrackWidth, 36f));
+            Image track = UIFactory.CreatePanel("Track_" + param.displayName, rowCard.transform, new Color(0.02f, 0.07f, 0.12f, 0.95f));
+            SetAnchored(track.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -73f), new Vector2(TrackWidth, 32f));
 
             // 绿色目标区间（按 min/max 比例铺在轨道上）
             Image zone = UIFactory.CreatePanel("Zone_" + param.displayName, track.transform, ZoneColor(locked: false));
@@ -140,16 +192,17 @@ public class OrbitTaskController : MonoBehaviour
             pointer.rectTransform.anchorMin = new Vector2(0f, 0.5f);
             pointer.rectTransform.anchorMax = new Vector2(0f, 0.5f);
             pointer.rectTransform.pivot = new Vector2(0.5f, 0.5f);
-            pointer.rectTransform.sizeDelta = new Vector2(6f, 48f);
+            pointer.rectTransform.sizeDelta = new Vector2(10f, 48f);
+            MiniGameVisuals.MakeCircle(pointer);
 
             Text rangeLabel = UIFactory.CreateText(
                 "TxtRange_" + param.displayName,
-                transform,
-                param.RangeText,
-                22,
+                rowCard.transform,
+                "稳定区  " + param.RangeText,
+                20,
                 UIPalette.TextDim
             );
-            SetAnchored(rangeLabel.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, rowY - 82f), new Vector2(400f, 30f));
+            SetAnchored(rangeLabel.rectTransform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 8f), new Vector2(400f, 28f));
 
             gauges[i] = new ParamGauge
             {
@@ -188,6 +241,9 @@ public class OrbitTaskController : MonoBehaviour
         SetAnchored(submitButton.GetComponent<RectTransform>(), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 60f), new Vector2(320f, 72f));
         submitButton.onClick.AddListener(OnSubmitClicked);
         submitButton.gameObject.SetActive(false);
+
+        MiniGameVisuals.PolishHierarchy(transform, MiniGameThemeId.Orbit);
+        MiniGameVisuals.AddEntrance(consoleCard.gameObject);
 
         gameObject.SetActive(false);
     }

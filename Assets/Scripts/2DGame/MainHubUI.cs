@@ -71,6 +71,7 @@ public class MainHubUI : MonoBehaviour
         // 进度卡片
         Image card = UIFactory.CreatePanel("ProgressCard", transform, UIPalette.Panel);
         SetAnchored(card.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -190f), new Vector2(760f, 190f));
+        MiniGameVisuals.Round(card);
 
         Text progressLabel = UIFactory.CreateText(
             "TxtProgressLabel",
@@ -112,7 +113,7 @@ public class MainHubUI : MonoBehaviour
         orbitButton = UIFactory.CreateButton(
             "BtnOrbit",
             transform,
-            "星际轨道巡检",
+            "01   星际轨道巡检",
             new Vector2(520f, 70f),
             UIPalette.AccentDim,
             28
@@ -125,12 +126,12 @@ public class MainHubUI : MonoBehaviour
         geneButton = UIFactory.CreateButton(
             "BtnGene",
             transform,
-            "基因孢子培育",
+            "03   基因孢子培育",
             new Vector2(520f, 70f),
-            UIPalette.AccentDim,
+            MiniGameVisuals.Theme(MiniGameThemeId.Gene).cardSoft,
             28
         );
-        SetAnchored(geneButton.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -575f), new Vector2(520f, 70f));
+        SetAnchored(geneButton.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -660f), new Vector2(520f, 70f));
         geneButtonLabel = geneButton.GetComponentInChildren<Text>();
         geneButton.onClick.AddListener(() => GeneCultivationClicked?.Invoke());
 
@@ -138,12 +139,12 @@ public class MainHubUI : MonoBehaviour
         nutrientButton = UIFactory.CreateButton(
             "BtnNutrient",
             transform,
-            "生态营养液投放",
+            "02   生态营养液投放",
             new Vector2(520f, 70f),
-            UIPalette.AccentDim,
+            MiniGameVisuals.Theme(MiniGameThemeId.Ecology).cardSoft,
             28
         );
-        SetAnchored(nutrientButton.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -660f), new Vector2(520f, 70f));
+        SetAnchored(nutrientButton.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -575f), new Vector2(520f, 70f));
         nutrientButtonLabel = nutrientButton.GetComponentInChildren<Text>();
         nutrientButton.onClick.AddListener(() => EcologyNutrientClicked?.Invoke());
 
@@ -161,6 +162,8 @@ public class MainHubUI : MonoBehaviour
             SetAnchored(reserved.GetComponent<RectTransform>(), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2((i - 1) * 260f, 36f), new Vector2(240f, 52f));
             reserved.interactable = false;
         }
+
+        MiniGameVisuals.PolishHierarchy(transform, MiniGameThemeId.Orbit);
     }
 
     public void Show()
@@ -200,15 +203,15 @@ public class MainHubUI : MonoBehaviour
 
         bool orbitDone = progress.IsTaskCompleted(OrbitCalibrationConfig.TaskId);
         orbitButton.interactable = !orbitDone;
-        orbitButtonLabel.text = orbitDone ? "星际轨道巡检（已完成）" : "星际轨道巡检";
+        orbitButtonLabel.text = orbitDone ? "01   星际轨道巡检  ✓" : "01   星际轨道巡检";
 
         bool geneDone = progress.IsTaskCompleted(GeneCultivationConfig.TaskId);
         geneButton.interactable = !geneDone;
-        geneButtonLabel.text = geneDone ? "基因孢子培育（已完成）" : "基因孢子培育";
+        geneButtonLabel.text = geneDone ? "03   基因孢子培育  ✓" : "03   基因孢子培育";
 
         bool nutrientDone = progress.IsTaskCompleted(EcologyNutrientConfig.TaskId);
         nutrientButton.interactable = !nutrientDone;
-        nutrientButtonLabel.text = nutrientDone ? "生态营养液投放（已完成）" : "生态营养液投放";
+        nutrientButtonLabel.text = nutrientDone ? "02   生态营养液投放  ✓" : "02   生态营养液投放";
     }
 
     private static void SetAnchored(
