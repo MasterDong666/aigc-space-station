@@ -203,22 +203,37 @@ public sealed class EarthRestorerFirstPersonBootstrap : MonoBehaviour
         float metallic = 0.05f;
         float smoothness = 0.45f;
 
-        if (materialName.Contains("SilverGrey"))
+        if (
+            materialName.Contains("SilverGrey") ||
+            materialName.Contains("PearlSilver")
+        )
         {
-            color = new Color(0.43f, 0.50f, 0.62f, 1f);
-            metallic = 0.20f;
-            smoothness = 0.58f;
-        }
-        else if (materialName.Contains("DarkPanels"))
-        {
-            color = new Color(0.055f, 0.075f, 0.12f, 1f);
+            color = new Color(0.48f, 0.53f, 0.62f, 1f);
             metallic = 0.12f;
+            smoothness = 0.52f;
         }
-        else if (materialName.Contains("GoldTrim"))
+        else if (
+            materialName.Contains("DarkPanels") ||
+            materialName.Contains("SidePanel")
+        )
+        {
+            color = new Color(0.20f, 0.25f, 0.34f, 1f);
+            metallic = 0.08f;
+        }
+        else if (
+            materialName.Contains("GoldTrim") ||
+            materialName.Contains("WarmGold")
+        )
         {
             color = new Color(0.67f, 0.48f, 0.14f, 1f);
             metallic = 0.70f;
             smoothness = 0.70f;
+        }
+        else if (materialName.Contains("DeepNavy"))
+        {
+            color = new Color(0.025f, 0.040f, 0.075f, 1f);
+            metallic = 0.18f;
+            smoothness = 0.62f;
         }
         else if (materialName.Contains("Skin"))
         {
@@ -236,12 +251,19 @@ public sealed class EarthRestorerFirstPersonBootstrap : MonoBehaviour
             metallic = 0.15f;
             smoothness = 0.62f;
         }
-        else if (materialName.Contains("EyeWhite"))
+        else if (
+            materialName.Contains("EyeWhite") ||
+            materialName.Contains("Eye_White")
+        )
         {
             color = new Color(0.88f, 0.90f, 0.86f, 1f);
             smoothness = 0.72f;
         }
-        else if (materialName.Contains("Eyes"))
+        else if (
+            materialName.Contains("Eyes") ||
+            materialName.Contains("Eye_Brown") ||
+            materialName.Contains("Eye_Pupil")
+        )
         {
             color = new Color(0.012f, 0.008f, 0.006f, 1f);
             smoothness = 0.82f;
