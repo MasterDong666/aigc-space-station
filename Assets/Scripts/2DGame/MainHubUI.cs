@@ -17,6 +17,9 @@ public class MainHubUI : MonoBehaviour
     /// <summary>点击【生态营养液投放】时触发。</summary>
     public event Action EcologyNutrientClicked;
 
+    /// <summary>点击【最终结局】时触发（仅在结局解锁后可用）。</summary>
+    public event Action FinalEndingClicked;
+
     private Text progressValueText;
     private Image progressFill;
     private Button orbitButton;
@@ -25,12 +28,14 @@ public class MainHubUI : MonoBehaviour
     private Text geneButtonLabel;
     private Button nutrientButton;
     private Text nutrientButtonLabel;
+    private Button finalEndingButton;
+    private Text finalEndingButtonLabel;
+    private Text finalEndingStatusText;
 
     private static readonly string[] ReservedNames =
     {
         "诺亚星",
         "剧情回顾",
-        "最终任务",
     };
 
     public void BuildUI()
@@ -156,9 +161,31 @@ public class MainHubUI : MonoBehaviour
                 UIPalette.Locked,
                 22
             );
-            SetAnchored(reserved.GetComponent<RectTransform>(), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2((i - 1) * 260f, 36f), new Vector2(240f, 52f));
+            SetAnchored(reserved.GetComponent<RectTransform>(), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(-260f + i * 260f, 36f), new Vector2(240f, 52f));
             reserved.interactable = false;
         }
+
+        // 最终结局入口（进度达到 GameProgressManager.EndingUnlockProgress 后解锁）
+        finalEndingButton = UIFactory.CreateButton(
+            "BtnFinalEnding",
+            transform,
+            "最终结局（锁定）",
+            new Vector2(240f, 52f),
+            UIPalette.AccentDim,
+            22
+        );
+        SetAnchored(finalEndingButton.GetComponent<RectTransform>(), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(260f, 36f), new Vector2(240f, 52f));
+        finalEndingButtonLabel = finalEndingButton.GetComponentInChildren<Text>();
+        finalEndingButton.onClick.AddListener(() => FinalEndingClicked?.Invoke());
+
+        finalEndingStatusText = UIFactory.CreateText(
+            "TxtEndingStatus",
+            transform,
+            string.Empty,
+            20,
+            UIPalette.TextDim
+        );
+        SetAnchored(finalEndingStatusText.rectTransform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, -14f), new Vector2(1000f, 56f));
     }
 
     public void Show()
@@ -196,6 +223,13 @@ public class MainHubUI : MonoBehaviour
         bool nutrientDone = progress.IsTaskCompleted(EcologyNutrientConfig.TaskId);
         nutrientButton.interactable = !nutrientDone;
         nutrientButtonLabel.text = nutrientDone ? "生态营养液投放（已完成）" : "生态营养液投放";
+
+        bool endingUnlocked = progress.IsEndingUnlocked;
+        finalEndingButton.interactable = endingUnlocked;
+        finalEndingButtonLabel.text = endingUnlocked ? "最终结局" : "最终结局（锁定）";
+        finalEndingStatusText.text = endingUnlocked
+            ? "最终修复方案已解锁"
+            : "地球修复进度达到 " + GameProgressManager.EndingUnlockProgress + "% 后解锁\n当前修复进度：" + value + " / " + GameProgressManager.EndingUnlockProgress;
     }
 
     private static void SetAnchored(

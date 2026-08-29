@@ -17,11 +17,8 @@ public class GreenhouseHarvestUI : MonoBehaviour
         HarvestDone,
     }
 
-    /// <summary>点击返回主界面时触发（收获未完成前可退出）。</summary>
+    /// <summary>点击返回主界面时触发（收获前可退出；收获完成后点击【返回主界面】同样触发）。</summary>
     public event Action ReturnRequested;
-
-    /// <summary>收获完成后点击【继续】时触发（进入结尾桥接）。</summary>
-    public event Action ContinueToEnding;
 
     public Phase CurrentPhase { get; private set; }
     public bool HarvestCompleted { get; private set; }
@@ -144,22 +141,23 @@ public class GreenhouseHarvestUI : MonoBehaviour
         Text newData = UIFactory.CreateText(
             "TxtNewData",
             subHarvestDone.transform,
-            "收到新的修复计划数据",
+            "收获完成\n修复数据已更新",
             44,
             UIPalette.Accent
         );
-        SetAnchored(newData.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 80f), new Vector2(1000f, 70f));
+        SetAnchored(newData.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 80f), new Vector2(1000f, 90f));
 
-        Button continueButton = UIFactory.CreateButton(
-            "BtnContinue",
+        // 任务3到此结束：返回主界面（不再自动进入结局）
+        Button backToHubButton = UIFactory.CreateButton(
+            "BtnBackToHub",
             subHarvestDone.transform,
-            "继续",
+            "返回主界面",
             new Vector2(320f, 72f),
             UIPalette.AccentDim,
             30
         );
-        SetAnchored(continueButton.GetComponent<RectTransform>(), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 150f), new Vector2(320f, 72f));
-        continueButton.onClick.AddListener(() => ContinueToEnding?.Invoke());
+        SetAnchored(backToHubButton.GetComponent<RectTransform>(), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 150f), new Vector2(320f, 72f));
+        backToHubButton.onClick.AddListener(() => ReturnRequested?.Invoke());
     }
 
     private void OnConfirmHarvestClicked()

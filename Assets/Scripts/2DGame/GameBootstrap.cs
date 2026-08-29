@@ -64,8 +64,8 @@ public class GameBootstrap : MonoBehaviour
         geneTask.ExitRequested += ReturnToMain;
         geneTask.EnterGreenhouse += OpenGreenhouse;
         greenhouse.ReturnRequested += ReturnToMain;
-        greenhouse.ContinueToEnding += OpenEndingBridge;
         endingBridge.ReturnRequested += ReturnToMain;
+        mainHub.FinalEndingClicked += OpenFinalEnding;
 
         mainHub.EcologyNutrientClicked += OpenEcologyTask;
         ecologyTask.ExitRequested += ReturnToMain;
@@ -95,9 +95,9 @@ public class GameBootstrap : MonoBehaviour
         greenhouse.Show();
     }
 
-    private void OpenEndingBridge()
+    private void OpenFinalEnding()
     {
-        greenhouse.Hide();
+        mainHub.Hide();
         endingBridge.Show();
     }
 
