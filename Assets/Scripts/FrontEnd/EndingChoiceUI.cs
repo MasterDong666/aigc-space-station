@@ -29,6 +29,11 @@ public class EndingChoiceUI : MonoBehaviour
         BuildPrelude();
         BuildChoice();
         BuildResult();
+        CinematicUIVisuals.PolishHierarchy(
+            transform,
+            CinematicUIVisuals.Peach,
+            CinematicUIVisuals.Sun
+        );
         gameObject.SetActive(false);
     }
 

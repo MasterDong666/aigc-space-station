@@ -15,45 +15,64 @@ public class EndingBridgeUI : MonoBehaviour
     public void BuildUI()
     {
         Image bg = gameObject.AddComponent<Image>();
-        bg.color = UIPalette.Background;
+        bg.color = CinematicUIVisuals.DeepInk;
 
-        // 媒体占位：结尾桥接剧情画面（正式美术/视频在此节点内替换）
-        GameObject slot = UIFactory.CreateMediaSlot(
-            "MediaSlot_EndingBridge",
-            "【占位】结尾桥接剧情画面（待正式美术/视频）",
+        CinematicUIVisuals.AddBackdrop(
             transform,
-            new Vector2(900f, 300f)
+            "FrontendArt/OpeningJourney",
+            new Color(0.015f, 0.035f, 0.075f, 0.48f),
+            "EndingJourneyBackdrop"
         );
-        SetAnchored(slot.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -180f), new Vector2(900f, 300f));
+
+        Image storyCard = CinematicUIVisuals.CreateCard(
+            "EndingBridgeCard",
+            transform,
+            new Color(0.04f, 0.10f, 0.15f, 0.94f),
+            new Vector2(940f, 520f)
+        );
+        SetAnchored(
+            storyCard.rectTransform,
+            new Vector2(0.5f, 0.5f),
+            new Vector2(0.5f, 0.5f),
+            Vector2.zero,
+            new Vector2(940f, 520f)
+        );
 
         Text title = UIFactory.CreateText(
             "TxtEndingTitle",
-            transform,
+            storyCard.transform,
             "新的行动阶段即将开启",
-            44,
-            UIPalette.TextMain
+            50,
+            CinematicUIVisuals.Cream
         );
-        SetAnchored(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -520f), new Vector2(1000f, 60f));
+        SetAnchored(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -72f), new Vector2(820f, 72f));
 
         Text text = UIFactory.CreateText(
             "TxtEndingText",
-            transform,
-            "更多地球修复数据已经完成汇总，\n新的行动阶段即将开启。",
-            30,
-            UIPalette.TextDim
+            storyCard.transform,
+            "三项修复数据已经汇总。归墟正在回应我们的努力。\n晨曦已为你准备好返航航线与下一段旅程。",
+            29,
+            new Color(0.82f, 0.92f, 0.94f, 1f)
         );
-        SetAnchored(text.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -600f), new Vector2(1000f, 100f));
+        SetAnchored(text.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -190f), new Vector2(800f, 130f));
 
         Button returnButton = UIFactory.CreateButton(
             "BtnReturnStation",
-            transform,
-            "返回空间站",
-            new Vector2(320f, 72f),
-            UIPalette.AccentDim,
+            storyCard.transform,
+            "返回空间站  ›",
+            new Vector2(360f, 78f),
+            new Color(0.94f, 0.46f, 0.24f, 1f),
             30
         );
-        SetAnchored(returnButton.GetComponent<RectTransform>(), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 150f), new Vector2(320f, 72f));
+        SetAnchored(returnButton.GetComponent<RectTransform>(), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 62f), new Vector2(360f, 78f));
         returnButton.onClick.AddListener(() => ReturnRequested?.Invoke());
+
+        CinematicUIVisuals.PolishHierarchy(
+            transform,
+            CinematicUIVisuals.Sky,
+            CinematicUIVisuals.Sun
+        );
+        CinematicUIVisuals.AddEntrance(storyCard.gameObject);
 
         gameObject.SetActive(false);
     }

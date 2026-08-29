@@ -29,7 +29,9 @@ public class FrontEndBootstrap : MonoBehaviour
     private GameObject narrativePanel;
     private InputField nameInput;
     private Text profileHint;
-    private Text avatarPreview;
+    private RawImage avatarPreview;
+    private Text avatarPreviewLabel;
+    private Texture2D[] avatarTextures;
     private Text narrativeEyebrow;
     private Text narrativeTitle;
     private Text narrativeBody;
@@ -59,6 +61,11 @@ public class FrontEndBootstrap : MonoBehaviour
         BuildProfilePanel(canvas.transform);
         BuildNarrativePanel(canvas.transform);
         BuildExtendedFlow(canvas.transform);
+        CinematicUIVisuals.PolishHierarchy(
+            canvas.transform,
+            CinematicUIVisuals.Sky,
+            CinematicUIVisuals.Sun
+        );
 
         if (MVPGameSession.TryConsumeNarrative(out GameNarrativeRoute route))
         {
@@ -81,26 +88,40 @@ public class FrontEndBootstrap : MonoBehaviour
         }
     }
 
+#if UNITY_EDITOR
+    private void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.F2))
+        {
+            ShowProfile();
+        }
+        else if (Input.GetKeyDown(KeyCode.F3))
+        {
+            if (!MVPGameSession.HasPlayerProfile)
+            {
+                MVPGameSession.SetPlayerProfile("预览修复官", "RESTORER_A");
+            }
+
+            StartOpeningNarrative();
+        }
+        else if (Input.GetKeyDown(KeyCode.F4))
+        {
+            ShowHolidayFlow();
+        }
+        else if (Input.GetKeyDown(KeyCode.F5))
+        {
+            ShowEndingFlow();
+        }
+    }
+#endif
+
     private void BuildBackdrop(Transform parent)
     {
-        Image background = UIFactory.CreatePanel(
-            "Background",
+        CinematicUIVisuals.AddBackdrop(
             parent,
-            new Color(0.008f, 0.025f, 0.05f, 1f)
-        );
-        UIFactory.Stretch(background.rectTransform);
-
-        Image glow = UIFactory.CreatePanel(
-            "EarthSignalGlow",
-            parent,
-            new Color(0.02f, 0.34f, 0.48f, 0.20f)
-        );
-        SetAnchored(
-            glow.rectTransform,
-            new Vector2(0.58f, 0.05f),
-            new Vector2(1.04f, 0.95f),
-            Vector2.zero,
-            Vector2.zero
+            "FrontendArt/MainHero",
+            new Color(0.015f, 0.035f, 0.08f, 0.20f),
+            "FrontEndHero"
         );
 
         Text coordinates = UIFactory.CreateText(
@@ -108,7 +129,7 @@ public class FrontEndBootstrap : MonoBehaviour
             parent,
             "EARTH RESTORATION NETWORK  //  03.20 LY  //  YEAR 2749",
             15,
-            new Color(0.35f, 0.72f, 0.8f, 0.75f),
+            new Color(0.77f, 0.92f, 0.96f, 0.82f),
             TextAnchor.MiddleLeft
         );
         SetAnchored(
@@ -124,9 +145,24 @@ public class FrontEndBootstrap : MonoBehaviour
     {
         mainPanel = CreateFullPanel("MainMenu", parent);
 
+        Image storyCard = CinematicUIVisuals.CreateCard(
+            "MainStoryCard",
+            mainPanel.transform,
+            new Color(0.035f, 0.09f, 0.15f, 0.78f),
+            new Vector2(790f, 690f)
+        );
+        SetAnchored(
+            storyCard.rectTransform,
+            new Vector2(0f, 0.5f),
+            new Vector2(0f, 0.5f),
+            new Vector2(72f, 0f),
+            new Vector2(790f, 690f)
+        );
+        CinematicUIVisuals.AddEntrance(storyCard.gameObject);
+
         Text eyebrow = UIFactory.CreateText(
             "Eyebrow",
-            mainPanel.transform,
+            storyCard.transform,
             "PROJECT  EARTH  //  第七十九任修复官任期",
             20,
             UIPalette.Accent,
@@ -136,13 +172,13 @@ public class FrontEndBootstrap : MonoBehaviour
             eyebrow.rectTransform,
             new Vector2(0f, 1f),
             new Vector2(0f, 1f),
-            new Vector2(120f, -180f),
-            new Vector2(900f, 38f)
+            new Vector2(52f, -62f),
+            new Vector2(680f, 38f)
         );
 
         Text title = UIFactory.CreateText(
             "Title",
-            mainPanel.transform,
+            storyCard.transform,
             "地 球 重 塑 计 划",
             74,
             UIPalette.TextMain,
@@ -152,13 +188,13 @@ public class FrontEndBootstrap : MonoBehaviour
             title.rectTransform,
             new Vector2(0f, 1f),
             new Vector2(0f, 1f),
-            new Vector2(116f, -242f),
-            new Vector2(1100f, 110f)
+            new Vector2(48f, -124f),
+            new Vector2(690f, 110f)
         );
 
         Text subtitle = UIFactory.CreateText(
             "Subtitle",
-            mainPanel.transform,
+            storyCard.transform,
             "两颗星球相隔 3.2 光年。\n七十八任修复官之后，重返地球的选择交到你手中。",
             29,
             UIPalette.TextDim,
@@ -168,21 +204,21 @@ public class FrontEndBootstrap : MonoBehaviour
             subtitle.rectTransform,
             new Vector2(0f, 1f),
             new Vector2(0f, 1f),
-            new Vector2(122f, -380f),
-            new Vector2(900f, 150f)
+            new Vector2(54f, -270f),
+            new Vector2(660f, 150f)
         );
 
         Image status = UIFactory.CreatePanel(
             "StatusCard",
-            mainPanel.transform,
-            new Color(0.025f, 0.10f, 0.15f, 0.94f)
+            storyCard.transform,
+            new Color(0.08f, 0.20f, 0.25f, 0.82f)
         );
         SetAnchored(
             status.rectTransform,
             new Vector2(0f, 0f),
             new Vector2(0f, 0f),
-            new Vector2(120f, 220f),
-            new Vector2(700f, 120f)
+            new Vector2(52f, 150f),
+            new Vector2(680f, 120f)
         );
 
         mainStatusText = UIFactory.CreateText(
@@ -204,17 +240,17 @@ public class FrontEndBootstrap : MonoBehaviour
 
         Button enter = UIFactory.CreateButton(
             "EnterGame",
-            mainPanel.transform,
-            "进入计划  ›",
+            storyCard.transform,
+            "启程，成为修复官  ›",
             new Vector2(360f, 82f),
-            UIPalette.AccentDim,
+            new Color(0.94f, 0.46f, 0.24f, 1f),
             32
         );
         SetAnchored(
             enter.GetComponent<RectTransform>(),
             new Vector2(0f, 0f),
             new Vector2(0f, 0f),
-            new Vector2(120f, 105f),
+            new Vector2(52f, 42f),
             new Vector2(360f, 82f)
         );
         enter.onClick.AddListener(ShowProfile);
@@ -224,10 +260,18 @@ public class FrontEndBootstrap : MonoBehaviour
     {
         profilePanel = CreateFullPanel("ProfileSetup", parent);
 
-        Image card = UIFactory.CreatePanel(
+        Image profileVeil = UIFactory.CreatePanel(
+            "ProfileVeil",
+            profilePanel.transform,
+            new Color(0.02f, 0.04f, 0.08f, 0.55f)
+        );
+        UIFactory.Stretch(profileVeil.rectTransform);
+
+        Image card = CinematicUIVisuals.CreateCard(
             "ProfileCard",
             profilePanel.transform,
-            new Color(0.025f, 0.09f, 0.14f, 0.97f)
+            new Color(0.055f, 0.12f, 0.17f, 0.96f),
+            new Vector2(1420f, 790f)
         );
         SetAnchored(
             card.rectTransform,
@@ -295,6 +339,12 @@ public class FrontEndBootstrap : MonoBehaviour
         );
 
         avatarButtons = new Button[3];
+        avatarTextures = new[]
+        {
+            Resources.Load<Texture2D>("FrontendArt/RestorerA"),
+            Resources.Load<Texture2D>("FrontendArt/RestorerB"),
+            Resources.Load<Texture2D>("FrontendArt/RestorerC"),
+        };
         string[] ids = { "RESTORER_A", "RESTORER_B", "RESTORER_C" };
         string[] labels = { "079-A\n轨道蓝", "079-B\n生态青", "079-C\n基因紫" };
 
@@ -304,7 +354,7 @@ public class FrontEndBootstrap : MonoBehaviour
             avatarButtons[i] = UIFactory.CreateButton(
                 "Avatar_" + ids[i],
                 card.transform,
-                labels[i],
+                string.Empty,
                 new Vector2(200f, 150f),
                 i == 0 ? UIPalette.AccentDim : UIPalette.PanelLight,
                 24
@@ -319,12 +369,49 @@ public class FrontEndBootstrap : MonoBehaviour
             avatarButtons[i].onClick.AddListener(
                 () => SelectAvatar(ids[index], index)
             );
+
+            Mask avatarMask = avatarButtons[i].gameObject.AddComponent<Mask>();
+            avatarMask.showMaskGraphic = true;
+            RawImage portrait = CreateRawImage(
+                "Portrait",
+                avatarButtons[i].transform,
+                avatarTextures[i],
+                Color.white
+            );
+            SetAnchored(
+                portrait.rectTransform,
+                Vector2.zero,
+                Vector2.one,
+                new Vector2(4f, 38f),
+                new Vector2(-8f, -42f)
+            );
+            Image labelPill = UIFactory.CreatePanel(
+                "AvatarLabelCard",
+                avatarButtons[i].transform,
+                new Color(0.04f, 0.08f, 0.12f, 0.88f)
+            );
+            SetAnchored(
+                labelPill.rectTransform,
+                Vector2.zero,
+                new Vector2(1f, 0f),
+                Vector2.zero,
+                new Vector2(0f, 40f)
+            );
+            Text avatarLabelText = UIFactory.CreateText(
+                "AvatarName",
+                labelPill.transform,
+                labels[i].Replace("\n", "  ·  "),
+                18,
+                Color.white
+            );
+            UIFactory.Stretch(avatarLabelText.rectTransform);
         }
 
-        Image previewCard = UIFactory.CreatePanel(
+        Image previewCard = CinematicUIVisuals.CreateCard(
             "PreviewCard",
             card.transform,
-            new Color(0.015f, 0.045f, 0.075f, 1f)
+            new Color(0.015f, 0.045f, 0.075f, 1f),
+            new Vector2(480f, 610f)
         );
         SetAnchored(
             previewCard.rectTransform,
@@ -334,30 +421,29 @@ public class FrontEndBootstrap : MonoBehaviour
             new Vector2(480f, 610f)
         );
 
-        avatarPreview = UIFactory.CreateText(
+        avatarPreview = CreateRawImage(
             "AvatarPreview",
             previewCard.transform,
-            "079\nA",
-            112,
-            UIPalette.Accent
+            avatarTextures[0],
+            Color.white
         );
         SetAnchored(
             avatarPreview.rectTransform,
-            new Vector2(0.5f, 0.55f),
-            new Vector2(0.5f, 0.55f),
-            Vector2.zero,
-            new Vector2(360f, 300f)
+            new Vector2(0f, 0.22f),
+            new Vector2(1f, 1f),
+            new Vector2(16f, 16f),
+            new Vector2(-32f, -32f)
         );
 
-        Text previewLabel = UIFactory.CreateText(
+        avatarPreviewLabel = UIFactory.CreateText(
             "PreviewLabel",
             previewCard.transform,
-            "第七十九任地球修复官\nPERSONNEL RECORD // ACTIVE",
+            "第七十九任地球修复官  ·  079-A\nPERSONNEL RECORD // ACTIVE",
             21,
             UIPalette.TextDim
         );
         SetAnchored(
-            previewLabel.rectTransform,
+            avatarPreviewLabel.rectTransform,
             new Vector2(0.5f, 0f),
             new Vector2(0.5f, 0f),
             new Vector2(0f, 60f),
@@ -385,7 +471,7 @@ public class FrontEndBootstrap : MonoBehaviour
             card.transform,
             "确认身份并继续",
             new Vector2(360f, 76f),
-            UIPalette.AccentDim,
+            new Color(0.94f, 0.46f, 0.24f, 1f),
             29
         );
         SetAnchored(
@@ -402,10 +488,18 @@ public class FrontEndBootstrap : MonoBehaviour
     {
         narrativePanel = CreateFullPanel("Narrative", parent);
 
-        Image media = UIFactory.CreatePanel(
+        Image narrativeVeil = UIFactory.CreatePanel(
+            "NarrativeVeil",
+            narrativePanel.transform,
+            new Color(0.01f, 0.025f, 0.055f, 0.36f)
+        );
+        UIFactory.Stretch(narrativeVeil.rectTransform);
+
+        Image media = CinematicUIVisuals.CreateCard(
             "MediaSlot",
             narrativePanel.transform,
-            new Color(0.015f, 0.07f, 0.11f, 1f)
+            Color.white,
+            Vector2.zero
         );
         SetAnchored(
             media.rectTransform,
@@ -415,19 +509,43 @@ public class FrontEndBootstrap : MonoBehaviour
             new Vector2(-75f, -140f)
         );
 
+        RawImage narrativeArt = CreateRawImage(
+            "OpeningJourneyArt",
+            media.transform,
+            Resources.Load<Texture2D>("FrontendArt/OpeningJourney"),
+            Color.white
+        );
+        UIFactory.Stretch(narrativeArt.rectTransform);
+
+        Image captionCard = UIFactory.CreatePanel(
+            "MediaCaptionCard",
+            media.transform,
+            new Color(0.035f, 0.08f, 0.12f, 0.84f)
+        );
+        SetAnchored(
+            captionCard.rectTransform,
+            new Vector2(0f, 0f),
+            new Vector2(1f, 0f),
+            new Vector2(24f, 24f),
+            new Vector2(-48f, 58f)
+        );
         narrativeMedia = UIFactory.CreateText(
             "MediaLabel",
-            media.transform,
+            captionCard.transform,
             string.Empty,
-            26,
-            new Color(0.40f, 0.78f, 0.84f, 0.9f)
+            20,
+            CinematicUIVisuals.Cream,
+            TextAnchor.MiddleLeft
         );
         UIFactory.Stretch(narrativeMedia.rectTransform);
+        narrativeMedia.rectTransform.offsetMin = new Vector2(20f, 0f);
+        narrativeMedia.rectTransform.offsetMax = new Vector2(-20f, 0f);
 
-        Image content = UIFactory.CreatePanel(
+        Image content = CinematicUIVisuals.CreateCard(
             "NarrativeCard",
             narrativePanel.transform,
-            new Color(0.025f, 0.085f, 0.13f, 0.98f)
+            new Color(0.045f, 0.10f, 0.15f, 0.95f),
+            Vector2.zero
         );
         SetAnchored(
             content.rectTransform,
@@ -442,7 +560,7 @@ public class FrontEndBootstrap : MonoBehaviour
             content.transform,
             "NARRATIVE TRANSMISSION",
             18,
-            UIPalette.Accent,
+            CinematicUIVisuals.Sun,
             TextAnchor.MiddleLeft
         );
         SetAnchored(
@@ -507,7 +625,7 @@ public class FrontEndBootstrap : MonoBehaviour
             content.transform,
             "继续  ›",
             new Vector2(280f, 72f),
-            UIPalette.AccentDim,
+            new Color(0.94f, 0.46f, 0.24f, 1f),
             28
         );
         SetAnchored(
@@ -525,7 +643,7 @@ public class FrontEndBootstrap : MonoBehaviour
             narrativePanel.transform,
             "跳过剧情",
             new Vector2(180f, 48f),
-            new Color(0.05f, 0.12f, 0.16f, 0.95f),
+            new Color(0.12f, 0.21f, 0.26f, 0.95f),
             20
         );
         SetAnchored(
@@ -581,7 +699,11 @@ public class FrontEndBootstrap : MonoBehaviour
     private void SelectAvatar(string id, int selectedIndex)
     {
         selectedAvatar = id;
-        avatarPreview.text = "079\n" + (char)('A' + selectedIndex);
+        avatarPreview.texture = avatarTextures[selectedIndex];
+        avatarPreviewLabel.text =
+            "第七十九任地球修复官  ·  079-" +
+            (char)('A' + selectedIndex) +
+            "\nPERSONNEL RECORD // ACTIVE";
 
         for (int i = 0; i < avatarButtons.Length; i++)
         {
@@ -600,27 +722,27 @@ public class FrontEndBootstrap : MonoBehaviour
                 "一星璀璨，一星长眠",
                 "无尽星尘横跨 3.2 光年。诺亚星依然蓝绿明亮，" +
                 "而被称为归墟的地球，只剩灰黄荒漠与沉默裂谷。",
-                "VIDEO SLOT // OPENING_COMBINED"
+                "两颗世界  ·  修复航线已建立"
             ),
             new(
                 "文明迁徙",
                 "公元 2317 年，地球生态圈彻底归零。" +
                 "公元 2419 年，人类完成百年星际迁徙，文明在诺亚星延续。",
-                "VIDEO SLOT // PROLOGUE_01"
+                "文明迁徙纪年  ·  2317—2419"
             ),
             new(
                 "地球重塑计划",
                 "三百二十九年，七十八任修复官独自驻守荒芜。" +
                 "现在，第七十九任修复官 " + MVPGameSession.PlayerName +
                 " 将接过这场跨越世代的修复任务。",
-                "VIDEO SLOT // PROLOGUE_02"
+                "七十八任修复官  ·  接力档案"
             ),
             new(
                 "晨曦系统已连接",
                 MVPGameSession.PlayerName +
                 " 修复官，你好。我是你的 AI 智能管家晨曦。" +
                 "接下来你将体验星际修复工作、诺亚生活以及最终剧情抉择。",
-                "CHENXI // IDENTITY VERIFIED"
+                "晨曦 AI  ·  身份核验成功"
             )
         };
 
@@ -643,20 +765,20 @@ public class FrontEndBootstrap : MonoBehaviour
                 "本月最后一个工作日",
                 "三项修复任务已经完成。返程飞船与空间站完成对接，" +
                 "舱门在气密提示音中缓缓关闭。",
-                "VIDEO SLOT // ACT_02_DEPARTURE"
+                "归墟同步轨道  ·  返航准备"
             ),
             new(
                 "返航诺亚",
                 "飞船离开归墟同步轨道。远方的诺亚星逐渐占满舷窗，" +
                 "城市、森林与湖泊重新出现在视野中。",
-                "VIDEO SLOT // ACT_02_NOAH"
+                "诺亚航线  ·  家园信标已锁定"
             ),
             new(
                 "休假生活已解锁",
                 "欢迎 " + MVPGameSession.PlayerName +
                 " 修复官回到诺亚。休假期间可以完成地球动植物拼图、" +
                 "解锁图鉴，并继续积累地球修复进度。",
-                "NOAH LIFE // BIODIVERSITY ARCHIVE ONLINE"
+                "诺亚生活  ·  生物图鉴已上线"
             )
         };
 
@@ -801,6 +923,22 @@ public class FrontEndBootstrap : MonoBehaviour
     {
         GameObject root = CreateFullPanel(name, parent);
         return root.AddComponent<T>();
+    }
+
+    private static RawImage CreateRawImage(
+        string name,
+        Transform parent,
+        Texture texture,
+        Color color
+    )
+    {
+        GameObject root = new(name, typeof(RectTransform), typeof(RawImage));
+        root.transform.SetParent(parent, false);
+        RawImage image = root.GetComponent<RawImage>();
+        image.texture = texture;
+        image.color = color;
+        image.raycastTarget = false;
+        return image;
     }
 
     private static InputField CreateInputField(Transform parent)

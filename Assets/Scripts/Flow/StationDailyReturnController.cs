@@ -356,6 +356,35 @@ public class StationDailyReturnController : MonoBehaviour
             new Vector2(540f, 36f)
         );
 
+        Image signalBadge = UIFactory.CreatePanel(
+            "ChenxiSignalBadge",
+            card.transform,
+            new Color(0.18f, 0.62f, 0.72f, 1f)
+        );
+        MiniGameVisuals.MakeCircle(signalBadge);
+        SetAnchored(
+            signalBadge.rectTransform,
+            new Vector2(0f, 1f),
+            new Vector2(0f, 1f),
+            new Vector2(64f, -168f),
+            new Vector2(56f, 56f)
+        );
+        Text signalGlyph = UIFactory.CreateText(
+            "ChenxiSignalGlyph",
+            signalBadge.transform,
+            "✦",
+            30,
+            Color.white
+        );
+        UIFactory.Stretch(signalGlyph.rectTransform);
+
+        CinematicUIVisuals.PolishHierarchy(
+            panelRoot.transform,
+            CinematicUIVisuals.Sky,
+            CinematicUIVisuals.Sun
+        );
+        CinematicUIVisuals.AddEntrance(card.gameObject);
+
         panelRoot.SetActive(false);
     }
 

@@ -33,6 +33,11 @@ public class NoahHolidayUI : MonoBehaviour
         BuildHolidayHub();
         BuildPuzzle();
         BuildResult();
+        CinematicUIVisuals.PolishHierarchy(
+            transform,
+            CinematicUIVisuals.Mint,
+            CinematicUIVisuals.Sun
+        );
         gameObject.SetActive(false);
     }
 
@@ -231,7 +236,21 @@ public class NoahHolidayUI : MonoBehaviour
     {
         puzzleRoot = CreateFullPanel("BiodiversityPuzzle", transform);
         Image background = puzzleRoot.AddComponent<Image>();
-        background.color = new Color(0.008f, 0.028f, 0.045f, 1f);
+        background.color = CinematicUIVisuals.DeepInk;
+
+        RawImage puzzleBackdrop = CreateRawImage(
+            "PuzzleBackdrop",
+            puzzleRoot.transform,
+            puzzleTexture,
+            new Color(1f, 1f, 1f, 0.28f)
+        );
+        UIFactory.Stretch(puzzleBackdrop.rectTransform);
+        Image puzzleVeil = UIFactory.CreatePanel(
+            "PuzzleVeil",
+            puzzleRoot.transform,
+            new Color(0.02f, 0.08f, 0.08f, 0.68f)
+        );
+        UIFactory.Stretch(puzzleVeil.rectTransform);
 
         Text title = UIFactory.CreateText(
             "Title",

@@ -13,3 +13,4 @@ Assets/ThirdParty/**/*.glb filter=lfs diff=lfs merge=lfs -text
 Assets/Resources/Characters/EarthRestorer/*.fbx filter=lfs diff=lfs merge=lfs -text
 Assets/Resources/Story/*.png filter=lfs diff=lfs merge=lfs -text
 Assets/Resources/MinigameArt/*.png filter=lfs diff=lfs merge=lfs -text
+Assets/Resources/FrontendArt/*.png filter=lfs diff=lfs merge=lfs -text

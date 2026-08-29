@@ -39,6 +39,7 @@ public class MainHubUI : MonoBehaviour
     {
         Image bg = gameObject.AddComponent<Image>();
         bg.color = UIPalette.Background;
+        MiniGameVisuals.PrepareScreen(gameObject, MiniGameThemeId.Orbit);
 
         // 顶部装饰线
         Image accentLine = UIFactory.CreatePanel("AccentLine", transform, UIPalette.Accent);
