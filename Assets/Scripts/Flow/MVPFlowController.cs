@@ -65,7 +65,7 @@ public class MVPFlowController : MonoBehaviour
     public event Action AllTasksCompleted;
 
     public int CompletedTaskCount { get; private set; }
-    public int RepairStage => CompletedTaskCount;
+    public int RepairStage => MVPGameSession.GetRestorationStage();
     public int TaskCount => GetValidatedTaskOrder().Count;
     public bool IsFlowComplete =>
         initialized && CompletedTaskCount >= TaskCount;
@@ -153,9 +153,14 @@ public class MVPFlowController : MonoBehaviour
             return false;
         }
 
+        if (!MVPGameSession.ReportTaskCompleted(id))
+        {
+            RestoreFlowFromSession();
+            return false;
+        }
+
         SetTaskState(id, MiniGameTaskState.Completed);
-        CompletedTaskCount++;
-        MVPGameSession.ReportTaskCompleted(id);
+        CompletedTaskCount = MVPGameSession.CompletedTaskCount;
         MVPGameSession.AcknowledgePendingCompletion(id);
 
         onTaskCompleted.Invoke(id);
@@ -182,6 +187,19 @@ public class MVPFlowController : MonoBehaviour
         RestoreFlowFromSession();
     }
 
+    public void BeginNextWorkday()
+    {
+        MVPGameSession.BeginNextWorkday();
+        RestoreFlowFromSession();
+
+        foreach (MiniGameId id in GetValidatedTaskOrder())
+        {
+            MiniGameTaskState state = GetTaskState(id);
+            onTaskStateChanged.Invoke(id, state);
+            TaskStateChanged?.Invoke(id, state);
+        }
+    }
+
     [ContextMenu("Complete Current Task (Development)")]
     public void CompleteCurrentTaskForDevelopment()
     {
@@ -197,7 +215,8 @@ public class MVPFlowController : MonoBehaviour
         {
             Debug.Log(
                 $"MVP Flow：开发测试已完成 {currentTask.Value}，" +
-                $"Earth 修复阶段为 {RepairStage}/{TaskCount}。",
+                $"Earth 修复进度为 {MVPGameSession.EarthProgress}/" +
+                $"{MVPGameSession.EndingProgress}，视觉阶段为 {RepairStage}/3。",
                 this
             );
         }

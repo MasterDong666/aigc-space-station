@@ -19,6 +19,8 @@ public class MainHubUI : MonoBehaviour
 
     private Text progressValueText;
     private Image progressFill;
+    private Text identityText;
+    private Text taskHeaderText;
     private Button orbitButton;
     private Text orbitButtonLabel;
     private Button geneButton;
@@ -57,14 +59,14 @@ public class MainHubUI : MonoBehaviour
         SetAnchored(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -50f), new Vector2(1100f, 90f));
 
         // 身份
-        Text identity = UIFactory.CreateText(
+        identityText = UIFactory.CreateText(
             "TxtIdentity",
             transform,
             "第七十九任地球修复官",
             26,
             UIPalette.TextDim
         );
-        SetAnchored(identity.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -140f), new Vector2(800f, 40f));
+        SetAnchored(identityText.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -140f), new Vector2(800f, 40f));
 
         // 进度卡片
         Image card = UIFactory.CreatePanel("ProgressCard", transform, UIPalette.Panel);
@@ -73,7 +75,7 @@ public class MainHubUI : MonoBehaviour
         Text progressLabel = UIFactory.CreateText(
             "TxtProgressLabel",
             card.transform,
-            "地球修复进度",
+            "地球修复进度  //  结局阈值 50",
             28,
             UIPalette.TextDim
         );
@@ -82,7 +84,7 @@ public class MainHubUI : MonoBehaviour
         progressValueText = UIFactory.CreateText(
             "TxtProgressValue",
             card.transform,
-            "10%",
+            "10 / 50",
             52,
             UIPalette.Accent
         );
@@ -97,14 +99,14 @@ public class MainHubUI : MonoBehaviour
         SetAnchored(progressFill.transform.parent.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -134f), new Vector2(600f, 20f));
 
         // 今日任务
-        Text taskHeader = UIFactory.CreateText(
+        taskHeaderText = UIFactory.CreateText(
             "TxtTaskHeader",
             transform,
             "今日任务",
             30,
             UIPalette.Accent
         );
-        SetAnchored(taskHeader.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -430f), new Vector2(400f, 44f));
+        SetAnchored(taskHeaderText.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -430f), new Vector2(400f, 44f));
 
         // 任务按钮
         orbitButton = UIFactory.CreateButton(
@@ -182,8 +184,19 @@ public class MainHubUI : MonoBehaviour
         }
 
         int value = progress.EarthProgress;
-        progressValueText.text = value + "%";
-        progressFill.fillAmount = value / 100f;
+        progressValueText.text = value + " / " + MVPGameSession.EndingProgress;
+        progressFill.fillAmount = value / (float)MVPGameSession.EndingProgress;
+
+        if (identityText != null)
+        {
+            identityText.text =
+                $"第七十九任地球修复官  ·  {MVPGameSession.PlayerName}";
+        }
+
+        if (taskHeaderText != null)
+        {
+            taskHeaderText.text = $"第 {MVPGameSession.Workday} 工作日任务";
+        }
 
         bool orbitDone = progress.IsTaskCompleted(OrbitCalibrationConfig.TaskId);
         orbitButton.interactable = !orbitDone;

@@ -41,7 +41,15 @@ public static class UIFactory
             if (uiFont == null)
             {
                 uiFont = Font.CreateDynamicFontFromOSFont(
-                    new[] { "Microsoft YaHei", "SimHei", "DengXian", "Arial" },
+                    new[]
+                    {
+                        "PingFang SC",
+                        "Hiragino Sans GB",
+                        "Microsoft YaHei",
+                        "SimHei",
+                        "DengXian",
+                        "Arial"
+                    },
                     32
                 );
             }

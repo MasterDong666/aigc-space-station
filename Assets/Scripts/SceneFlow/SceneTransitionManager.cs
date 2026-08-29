@@ -8,8 +8,21 @@ using UnityEngine.SceneManagement;
 /// </summary>
 public static class SceneTransitionManager
 {
+    public const string FrontEndScenePath =
+        "Assets/Scenes/FrontEnd.unity";
+
     public const string StationHubScenePath =
         "Assets/Scenes/SpaceStationHub_MVP.unity";
+
+    public static bool EnterFrontEnd()
+    {
+        return LoadScene(FrontEndScenePath, true);
+    }
+
+    public static bool EnterStationHub()
+    {
+        return LoadScene(StationHubScenePath, false);
+    }
 
     public static bool EnterMiniGame(string scenePath)
     {
@@ -18,7 +31,7 @@ public static class SceneTransitionManager
 
     public static bool ReturnToStationHub()
     {
-        return LoadScene(StationHubScenePath, false);
+        return EnterStationHub();
     }
 
     private static bool LoadScene(string scenePath, bool showCursor)

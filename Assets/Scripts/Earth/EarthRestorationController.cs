@@ -41,7 +41,7 @@ public struct EarthRestorationVisual
 /// <summary>
 /// Drives the MVP Earth's four visual restoration stages without modifying the
 /// original FBX, texture, or shared Earth material. Runtime values are applied
-/// through a MaterialPropertyBlock and follow MVPFlowController progress.
+/// through a MaterialPropertyBlock and follow the shared 0..50 progression.
 /// </summary>
 [DisallowMultipleComponent]
 public class EarthRestorationController : MonoBehaviour
@@ -143,23 +143,15 @@ public class EarthRestorationController : MonoBehaviour
     {
         ResolveReferences();
 
-        if (flowController != null)
-        {
-            flowController.RepairStageChanged += HandleRepairStageChanged;
-        }
+        MVPGameSession.ProgressChanged += HandleProgressChanged;
 
-        int initialStage = flowController != null
-            ? flowController.RepairStage
-            : 0;
+        int initialStage = MVPGameSession.GetRestorationStage();
         SetStageImmediate(initialStage);
     }
 
     private void OnDisable()
     {
-        if (flowController != null)
-        {
-            flowController.RepairStageChanged -= HandleRepairStageChanged;
-        }
+        MVPGameSession.ProgressChanged -= HandleProgressChanged;
     }
 
     private void Update()
@@ -245,9 +237,9 @@ public class EarthRestorationController : MonoBehaviour
         ApplyVisual(visual);
     }
 
-    private void HandleRepairStageChanged(int stage)
+    private void HandleProgressChanged(int _)
     {
-        SetStage(stage);
+        SetStage(MVPGameSession.GetRestorationStage());
     }
 
     private void ResolveReferences()
