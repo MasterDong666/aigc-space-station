@@ -35,10 +35,13 @@ public class GreenhouseHarvestUI : MonoBehaviour
     {
         Image bg = gameObject.AddComponent<Image>();
         bg.color = UIPalette.Background;
+        MiniGameVisuals.PrepareScreen(gameObject, MiniGameThemeId.Gene);
 
         BuildOverviewSubPanel();
         BuildHarvestingSubPanel();
         BuildHarvestDoneSubPanel();
+
+        MiniGameVisuals.PolishHierarchy(transform, MiniGameThemeId.Gene);
 
         ShowSubPanel(subOverview);
         gameObject.SetActive(false);
@@ -66,13 +69,14 @@ public class GreenhouseHarvestUI : MonoBehaviour
 
         Text title = UIFactory.CreateText("TxtGreenhouseTitle", subOverview.transform, "太空培育大棚", 48, UIPalette.TextMain);
         SetAnchored(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -70f), new Vector2(900f, 70f));
+        MiniGameVisuals.AddStepRail(subOverview.transform, MiniGameThemeId.Gene, new[] { "确认作物", "自动收获", "同步数据" }, 0);
 
-        // 媒体占位：太空大棚全景（正式美术/视频在此节点内替换）
-        GameObject slot = UIFactory.CreateMediaSlot(
+        GameObject slot = MiniGameVisuals.CreateArtSlot(
             "MediaSlot_Greenhouse",
-            "【占位】太空大棚全景（待正式美术/视频）",
             subOverview.transform,
-            new Vector2(900f, 340f)
+            new Vector2(900f, 340f),
+            MiniGameThemeId.Gene,
+            "太空大棚 · 首批培育作物"
         );
         SetAnchored(slot.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -180f), new Vector2(900f, 340f));
 
@@ -114,13 +118,14 @@ public class GreenhouseHarvestUI : MonoBehaviour
 
         Text title = UIFactory.CreateText("TxtHarvestingTitle", subHarvesting.transform, "自动收获", 48, UIPalette.TextMain);
         SetAnchored(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -70f), new Vector2(900f, 70f));
+        MiniGameVisuals.AddStepRail(subHarvesting.transform, MiniGameThemeId.Gene, new[] { "确认作物", "自动收获", "同步数据" }, 1);
 
-        // 媒体占位：机器人机械臂特写（正式美术/视频在此节点内替换）
-        GameObject slot = UIFactory.CreateMediaSlot(
+        GameObject slot = MiniGameVisuals.CreateArtSlot(
             "MediaSlot_HarvestRobots",
-            "【占位】机器人机械臂特写（待正式美术/视频）",
             subHarvesting.transform,
-            new Vector2(900f, 340f)
+            new Vector2(900f, 340f),
+            MiniGameThemeId.Gene,
+            "智能采收单元运行中"
         );
         SetAnchored(slot.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -180f), new Vector2(900f, 340f));
 
@@ -138,14 +143,25 @@ public class GreenhouseHarvestUI : MonoBehaviour
     {
         subHarvestDone = CreateSubPanel("SubHarvestDone");
 
+        MiniGameVisuals.AddStepRail(subHarvestDone.transform, MiniGameThemeId.Gene, new[] { "确认作物", "自动收获", "同步数据" }, 2);
+
+        Image resultCard = MiniGameVisuals.CreateCard("HarvestResultCard", subHarvestDone.transform, new Vector2(900f, 390f), MiniGameThemeId.Gene);
+        SetAnchored(resultCard.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 20f), new Vector2(900f, 390f));
+
+        Text successGlyph = UIFactory.CreateText("SuccessGlyph", resultCard.transform, "✓", 82, MiniGameVisuals.Theme(MiniGameThemeId.Gene).accentWarm);
+        SetAnchored(successGlyph.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -46f), new Vector2(160f, 100f));
+
         Text newData = UIFactory.CreateText(
             "TxtNewData",
-            subHarvestDone.transform,
-            "收获完成\n修复数据已更新",
+            resultCard.transform,
+            "新一批修复计划数据已同步",
             44,
             UIPalette.Accent
         );
-        SetAnchored(newData.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 80f), new Vector2(1000f, 90f));
+        SetAnchored(newData.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 6f), new Vector2(780f, 70f));
+
+        Text detail = UIFactory.CreateText("TxtHarvestDetail", resultCard.transform, "温室作物已入库，归墟生态恢复数据获得更新。", 25, UIPalette.TextDim);
+        SetAnchored(detail.rectTransform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 72f), new Vector2(760f, 42f));
 
         // 任务3到此结束：返回主界面（不再自动进入结局）
         Button backToHubButton = UIFactory.CreateButton(
@@ -193,6 +209,7 @@ public class GreenhouseHarvestUI : MonoBehaviour
     {
         RectTransform rect = UIFactory.CreateRect(name, transform);
         UIFactory.Stretch(rect);
+        MiniGameVisuals.AddEntrance(rect.gameObject);
         rect.gameObject.SetActive(false);
         return rect.gameObject;
     }

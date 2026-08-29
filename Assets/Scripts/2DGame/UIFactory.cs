@@ -1,21 +1,21 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-/// <summary>科幻风占位配色（Stage 1 色块风，非最终美术）。</summary>
+/// <summary>主流程与小游戏共用的动画电影风基础色板。</summary>
 public static class UIPalette
 {
-    public static readonly Color Background = Hex("#0A1420");
-    public static readonly Color Panel = Hex("#12233C");
-    public static readonly Color PanelLight = Hex("#1B3354");
-    public static readonly Color Accent = Hex("#00E5FF");
-    public static readonly Color AccentDim = Hex("#0A6E7E");
-    public static readonly Color TextMain = Hex("#E8F4FF");
-    public static readonly Color TextDim = Hex("#7FA3C7");
-    public static readonly Color Ok = Hex("#3DDC97");
-    public static readonly Color Warn = Hex("#FF6B6B");
-    public static readonly Color Locked = Hex("#46586C");
-    public static readonly Color Suitable = Hex("#1E4D3C");
-    public static readonly Color Unsuitable = Hex("#4A3B44");
+    public static readonly Color Background = Hex("#10243A");
+    public static readonly Color Panel = Hex("#17394A");
+    public static readonly Color PanelLight = Hex("#28566A");
+    public static readonly Color Accent = Hex("#55C8E8");
+    public static readonly Color AccentDim = Hex("#287F99");
+    public static readonly Color TextMain = Hex("#FFF4DF");
+    public static readonly Color TextDim = Hex("#B7D6DF");
+    public static readonly Color Ok = Hex("#73D7B3");
+    public static readonly Color Warn = Hex("#FF8A75");
+    public static readonly Color Locked = Hex("#627586");
+    public static readonly Color Suitable = Hex("#285B4A");
+    public static readonly Color Unsuitable = Hex("#664B5A");
 
     private static Color Hex(string hex)
     {
@@ -26,7 +26,7 @@ public static class UIPalette
 }
 
 /// <summary>
-/// 纯代码搭建 uGUI 的工厂方法（Stage 1 统一入口）。
+/// 纯代码搭建 uGUI 的统一入口。
 /// 目标分辨率 1920x1080（CanvasScaler ScaleWithScreenSize）。
 /// </summary>
 public static class UIFactory
@@ -41,7 +41,15 @@ public static class UIFactory
             if (uiFont == null)
             {
                 uiFont = Font.CreateDynamicFontFromOSFont(
-                    new[] { "Microsoft YaHei", "SimHei", "DengXian", "Arial" },
+                    new[]
+                    {
+                        "PingFang SC",
+                        "Hiragino Sans GB",
+                        "Microsoft YaHei",
+                        "SimHei",
+                        "DengXian",
+                        "Arial"
+                    },
                     32
                 );
             }

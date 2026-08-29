@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ea1db1ad9bee4a258818a5e5d25ee6b0, type: 3}
+  m_Name: Chenxi_GeneComplete
+  m_EditorClassIdentifier:
+  sequenceId: Chenxi_GeneComplete
+  lockPlayer: 1
+  lines:
+  - speaker: "\u6668\u66E6"
+    text: "\u57FA\u56E0\u57F9\u80B2\u4EFB\u52A1\u5B8C\u6210\uFF0C\u65E0\u4EBA\u673A\u7FA4\u5DF2\u7ECF\u8FDB\u5165\u6295\u653E\u5E8F\u5217\u3002"
+    voiceClip: {fileID: 8300000, guid: 9c57f4f5895c1406eb64393e8466a721, type: 3}

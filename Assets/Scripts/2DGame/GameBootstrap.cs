@@ -12,8 +12,9 @@ public class GameBootstrap : MonoBehaviour
     private GeneCultivationTaskController geneTask;
     private EcologyNutrientTaskController ecologyTask;
     private GreenhouseHarvestUI greenhouse;
-    private EndingBridgeUI endingBridge;
     private CompletionPopupUI completionPopup;
+    private TaskTutorialUI tutorialUI;
+    private bool launchedFromStation;
 
     private void Awake()
     {
@@ -43,38 +44,45 @@ public class GameBootstrap : MonoBehaviour
         greenhouse = CreatePanel<GreenhouseHarvestUI>("GreenhousePanel", canvas.transform);
         greenhouse.BuildUI();
 
-        endingBridge = CreatePanel<EndingBridgeUI>("EndingBridgePanel", canvas.transform);
-        endingBridge.BuildUI();
-
         ecologyTask = CreatePanel<EcologyNutrientTaskController>("EcologyPanel", canvas.transform);
         ecologyTask.BuildUI();
 
         completionPopup = CreatePanel<CompletionPopupUI>("CompletionPopup", canvas.transform);
         completionPopup.BuildUI();
 
+        tutorialUI = CreatePanel<TaskTutorialUI>("TaskTutorial", canvas.transform);
+        tutorialUI.BuildUI();
+
         // 流程串联
-        mainHub.OrbitTaskClicked += OpenOrbitTask;
-        orbitTask.ReturnRequested += ReturnToMain;
-        orbitTask.ReportSubmitted += reward => completionPopup.Show(
-            "今日轨道巡检完成\n地球修复进度 +" + reward + "%",
-            ReturnToMain
+        mainHub.OrbitTaskClicked += () => OpenTaskWithTutorial(
+            MiniGameId.OrbitInspection,
+            OpenOrbitTask
+        );
+        orbitTask.ReturnRequested += ReturnFromMiniGame;
+        orbitTask.ReportSubmitted += reward => ShowCompletionPopup(
+            "今日轨道巡检完成",
+            reward
         );
 
-        mainHub.GeneCultivationClicked += OpenGeneTask;
-        geneTask.ExitRequested += ReturnToMain;
+        mainHub.GeneCultivationClicked += () => OpenTaskWithTutorial(
+            MiniGameId.GeneCultivation,
+            OpenGeneTask
+        );
+        geneTask.ExitRequested += ReturnFromMiniGame;
         geneTask.EnterGreenhouse += OpenGreenhouse;
-        greenhouse.ReturnRequested += ReturnToMain;
-        endingBridge.ReturnRequested += ReturnToMain;
-        mainHub.FinalEndingClicked += OpenFinalEnding;
+        greenhouse.ReturnRequested += ReturnFromMiniGame;
 
-        mainHub.EcologyNutrientClicked += OpenEcologyTask;
-        ecologyTask.ExitRequested += ReturnToMain;
-        ecologyTask.ReportSubmitted += reward => completionPopup.Show(
-            "营养液投放完成\n地球修复进度 +" + reward + "%",
-            ReturnToMain
+        mainHub.EcologyNutrientClicked += () => OpenTaskWithTutorial(
+            MiniGameId.EcologyDeployment,
+            OpenEcologyTask
+        );
+        ecologyTask.ExitRequested += ReturnFromMiniGame;
+        ecologyTask.ReportSubmitted += reward => ShowCompletionPopup(
+            "营养液投放完成",
+            reward
         );
 
-        mainHub.Show();
+        OpenRequestedTaskOrMainHub();
     }
 
     private void OpenOrbitTask()
@@ -89,16 +97,53 @@ public class GameBootstrap : MonoBehaviour
         geneTask.OpenTask();
     }
 
+    private void OpenRequestedTaskOrMainHub()
+    {
+        if (!MVPGameSession.TryConsumeRequestedMiniGame(out MiniGameId id))
+        {
+            launchedFromStation = false;
+            mainHub.Show();
+            return;
+        }
+
+        launchedFromStation = true;
+
+        switch (id)
+        {
+            case MiniGameId.OrbitInspection:
+                OpenTaskWithTutorial(id, OpenOrbitTask);
+                break;
+            case MiniGameId.EcologyDeployment:
+                OpenTaskWithTutorial(id, OpenEcologyTask);
+                break;
+            case MiniGameId.GeneCultivation:
+                OpenTaskWithTutorial(id, OpenGeneTask);
+                break;
+            default:
+                launchedFromStation = false;
+                mainHub.Show();
+                break;
+        }
+    }
+
     private void OpenGreenhouse()
     {
         geneTask.Hide();
         greenhouse.Show();
     }
 
-    private void OpenFinalEnding()
+    private void OpenTaskWithTutorial(
+        MiniGameId id,
+        System.Action openTask
+    )
     {
-        mainHub.Hide();
-        endingBridge.Show();
+        if (MVPGameSession.HasSeenTaskTutorial(id))
+        {
+            openTask?.Invoke();
+            return;
+        }
+
+        tutorialUI.Show(id, openTask);
     }
 
     private void OpenEcologyTask()
@@ -113,9 +158,33 @@ public class GameBootstrap : MonoBehaviour
         geneTask.Hide();
         ecologyTask.Hide();
         greenhouse.Hide();
-        endingBridge.Hide();
+        tutorialUI.gameObject.SetActive(false);
         mainHub.Show();
         mainHub.Refresh();
+    }
+
+    private void ShowCompletionPopup(string title, int reward)
+    {
+        completionPopup.Show(
+            title + "\n地球修复进度 +" + reward + " 点",
+            launchedFromStation ? ReturnToStation : ReturnToMain
+        );
+    }
+
+    private void ReturnFromMiniGame()
+    {
+        if (launchedFromStation)
+        {
+            ReturnToStation();
+            return;
+        }
+
+        ReturnToMain();
+    }
+
+    private static void ReturnToStation()
+    {
+        SceneTransitionManager.ReturnToStationHub();
     }
 
     private static T CreatePanel<T>(string name, Transform parent) where T : Component

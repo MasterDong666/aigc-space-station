@@ -62,6 +62,7 @@ public class GeneCultivationTaskController : MonoBehaviour
     {
         Image bg = gameObject.AddComponent<Image>();
         bg.color = UIPalette.Background;
+        MiniGameVisuals.PrepareScreen(gameObject, MiniGameThemeId.Gene);
 
         BuildTopBar();
         BuildLibrarySubPanel();
@@ -69,6 +70,8 @@ public class GeneCultivationTaskController : MonoBehaviour
         BuildSowingSubPanel();
         BuildGrowthSubPanel();
         BuildResultSubPanel();
+
+        MiniGameVisuals.PolishHierarchy(transform, MiniGameThemeId.Gene);
 
         ShowSubPanel(subLibrary);
         gameObject.SetActive(false);
@@ -121,13 +124,14 @@ public class GeneCultivationTaskController : MonoBehaviour
 
         Text title = UIFactory.CreateText("TxtGeneTitle", subLibrary.transform, "诺亚基因库终端", 48, UIPalette.TextMain);
         SetAnchored(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -70f), new Vector2(900f, 70f));
+        MiniGameVisuals.AddStepRail(subLibrary.transform, MiniGameThemeId.Gene, new[] { "基因样本", "播种区域", "无人机群", "快速培育", "结果" }, 0);
 
-        // 媒体占位：基因库背景（正式美术在此节点内替换）
-        GameObject librarySlot = UIFactory.CreateMediaSlot(
+        GameObject librarySlot = MiniGameVisuals.CreateArtSlot(
             "MediaSlot_GeneLibrary",
-            "【占位】基因库背景（待正式美术）",
             subLibrary.transform,
-            new Vector2(900f, 180f)
+            new Vector2(900f, 180f),
+            MiniGameThemeId.Gene,
+            "诺亚基因样本库"
         );
         SetAnchored(librarySlot.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -160f), new Vector2(900f, 180f));
 
@@ -139,7 +143,7 @@ public class GeneCultivationTaskController : MonoBehaviour
             Button btn = UIFactory.CreateButton(
                 "BtnSpore_" + spore.displayName,
                 subLibrary.transform,
-                spore.unlocked ? spore.displayName : spore.displayName + "（锁定）",
+                spore.unlocked ? "可用样本  ·  " + spore.displayName : "未授权  ·  " + spore.displayName,
                 new Vector2(300f, 84f),
                 spore.unlocked ? UIPalette.PanelLight : UIPalette.Locked,
                 28
@@ -179,9 +183,10 @@ public class GeneCultivationTaskController : MonoBehaviour
 
         Text title = UIFactory.CreateText("TxtSeedingTitle", subSeeding.transform, "播种区域", 48, UIPalette.TextMain);
         SetAnchored(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -70f), new Vector2(900f, 70f));
+        MiniGameVisuals.AddStepRail(subSeeding.transform, MiniGameThemeId.Gene, new[] { "基因样本", "播种区域", "无人机群", "快速培育", "结果" }, 1);
 
         Text hint = UIFactory.CreateText("TxtSeedingHint", subSeeding.transform, "请选择适宜播种的绿色区域", 26, UIPalette.TextDim);
-        SetAnchored(hint.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -140f), new Vector2(800f, 40f));
+        SetAnchored(hint.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -185f), new Vector2(800f, 40f));
 
         SeedingRegion[] regions = GeneCultivationConfig.Regions;
         for (int i = 0; i < regions.Length; i++)
@@ -193,12 +198,12 @@ public class GeneCultivationTaskController : MonoBehaviour
             Button btn = UIFactory.CreateButton(
                 "BtnRegion_" + region.displayName,
                 subSeeding.transform,
-                region.displayName,
+                (region.suitable ? "✓  " : "×  ") + region.displayName,
                 new Vector2(280f, 100f),
                 region.suitable ? UIPalette.Suitable : UIPalette.Unsuitable,
                 26
             );
-            SetAnchored(btn.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2((col - 1) * 310f, -200f - row * 120f), new Vector2(280f, 100f));
+            SetAnchored(btn.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2((col - 1) * 310f, -245f - row * 120f), new Vector2(280f, 100f));
 
             regionButtons[i] = btn;
             int index = i;
@@ -212,7 +217,7 @@ public class GeneCultivationTaskController : MonoBehaviour
             28,
             UIPalette.Warn
         );
-        SetAnchored(seedingStatusText.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -470f), new Vector2(1000f, 50f));
+        SetAnchored(seedingStatusText.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -520f), new Vector2(1000f, 50f));
 
         releaseDronesButton = UIFactory.CreateButton(
             "BtnReleaseDrones",
@@ -233,13 +238,14 @@ public class GeneCultivationTaskController : MonoBehaviour
 
         Text title = UIFactory.CreateText("TxtSowingTitle", subSowing.transform, "无人机播种", 48, UIPalette.TextMain);
         SetAnchored(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -70f), new Vector2(900f, 70f));
+        MiniGameVisuals.AddStepRail(subSowing.transform, MiniGameThemeId.Gene, new[] { "基因样本", "播种区域", "无人机群", "快速培育", "结果" }, 2);
 
-        // 媒体占位：无人机播种（正式美术/视频在此节点内替换）
-        GameObject slot = UIFactory.CreateMediaSlot(
+        GameObject slot = MiniGameVisuals.CreateArtSlot(
             "MediaSlot_DroneSowing",
-            "【占位】无人机播种画面（待正式美术/视频）",
             subSowing.transform,
-            new Vector2(900f, 300f)
+            new Vector2(900f, 300f),
+            MiniGameThemeId.Gene,
+            "无人机孢子播撒实况"
         );
         SetAnchored(slot.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -180f), new Vector2(900f, 300f));
 
@@ -252,6 +258,7 @@ public class GeneCultivationTaskController : MonoBehaviour
             drone.rectTransform.anchorMax = new Vector2(0f, 1f);
             drone.rectTransform.pivot = new Vector2(0.5f, 0.5f);
             drone.rectTransform.sizeDelta = new Vector2(22f, 22f);
+            MiniGameVisuals.MakeCircle(drone);
             drone.rectTransform.anchoredPosition = new Vector2(40f + i * 30f, -30f - i * 20f);
             droneIcons[i] = drone.rectTransform;
         }
@@ -272,15 +279,22 @@ public class GeneCultivationTaskController : MonoBehaviour
 
         Text title = UIFactory.CreateText("TxtGrowthTitle", subGrowth.transform, "培育中", 48, UIPalette.TextMain);
         SetAnchored(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -70f), new Vector2(900f, 70f));
+        MiniGameVisuals.AddStepRail(subGrowth.transform, MiniGameThemeId.Gene, new[] { "基因样本", "播种区域", "无人机群", "快速培育", "结果" }, 3);
+
+        Image growthCard = MiniGameVisuals.CreateCard("GrowthStatusCard", subGrowth.transform, new Vector2(920f, 300f), MiniGameThemeId.Gene);
+        SetAnchored(growthCard.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 25f), new Vector2(920f, 300f));
+
+        Text growthGlyph = UIFactory.CreateText("GrowthGlyph", growthCard.transform, "✦  ◉  ✦", 46, MiniGameVisuals.Theme(MiniGameThemeId.Gene).accentWarm);
+        SetAnchored(growthGlyph.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -46f), new Vector2(500f, 60f));
 
         growthStatusText = UIFactory.CreateText(
             "TxtGrowthStatus",
-            subGrowth.transform,
+            growthCard.transform,
             string.Empty,
             44,
             UIPalette.Accent
         );
-        SetAnchored(growthStatusText.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 40f), new Vector2(1000f, 80f));
+        SetAnchored(growthStatusText.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -10f), new Vector2(820f, 90f));
 
         viewResultButton = UIFactory.CreateButton(
             "BtnViewResult",
@@ -301,15 +315,16 @@ public class GeneCultivationTaskController : MonoBehaviour
 
         Text title = UIFactory.CreateText("TxtResultTitle", subResult.transform, "培育结果", 48, UIPalette.TextMain);
         SetAnchored(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -70f), new Vector2(900f, 70f));
+        MiniGameVisuals.AddStepRail(subResult.transform, MiniGameThemeId.Gene, new[] { "基因样本", "播种区域", "无人机群", "快速培育", "结果" }, 4);
 
-        // 媒体占位：培育植物群落（正式美术在此节点内替换）
-        GameObject slot = UIFactory.CreateMediaSlot(
+        GameObject slot = MiniGameVisuals.CreateArtSlot(
             "MediaSlot_CultivatedPlants",
-            "【占位】培育植物群落（待正式美术）",
             subResult.transform,
-            new Vector2(760f, 240f)
+            new Vector2(760f, 240f),
+            MiniGameThemeId.Gene,
+            "新生群落培育舱"
         );
-        SetAnchored(slot.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -160f), new Vector2(760f, 240f));
+        SetAnchored(slot.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -185f), new Vector2(760f, 240f));
 
         resultSporeValue = CreateResultRow("孢子类型", 0);
         resultRegionValue = CreateResultRow("播种区域", 1);
@@ -320,11 +335,11 @@ public class GeneCultivationTaskController : MonoBehaviour
         Text mutation = UIFactory.CreateText(
             "TxtMutationPlaceholder",
             subResult.transform,
-            "发现变异嫩芽：暂无（占位，正式随机系统待接入）",
+            "变异嫩芽监测：本轮未检测到异常",
             22,
             UIPalette.TextDim
         );
-        SetAnchored(mutation.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -620f), new Vector2(900f, 34f));
+        SetAnchored(mutation.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -640f), new Vector2(900f, 34f));
 
         Button enterGreenhouse = UIFactory.CreateButton(
             "BtnEnterGreenhouse",
@@ -348,7 +363,7 @@ public class GeneCultivationTaskController : MonoBehaviour
             UIPalette.TextDim,
             TextAnchor.MiddleLeft
         );
-        SetAnchored(label.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(-350f, -430f - rowIndex * 48f), new Vector2(280f, 40f));
+        SetAnchored(label.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(-350f, -445f - rowIndex * 48f), new Vector2(280f, 40f));
 
         Text value = UIFactory.CreateText(
             "TxtResultValue_" + rowIndex,
@@ -358,7 +373,7 @@ public class GeneCultivationTaskController : MonoBehaviour
             UIPalette.TextMain,
             TextAnchor.MiddleLeft
         );
-        SetAnchored(value.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(-60f, -430f - rowIndex * 48f), new Vector2(420f, 40f));
+        SetAnchored(value.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(-60f, -445f - rowIndex * 48f), new Vector2(420f, 40f));
         return value;
     }
 
@@ -527,6 +542,7 @@ public class GeneCultivationTaskController : MonoBehaviour
     {
         RectTransform rect = UIFactory.CreateRect(name, transform);
         UIFactory.Stretch(rect);
+        MiniGameVisuals.AddEntrance(rect.gameObject);
         rect.gameObject.SetActive(false);
         return rect.gameObject;
     }

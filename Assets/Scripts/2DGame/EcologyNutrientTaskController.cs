@@ -182,12 +182,15 @@ public class EcologyNutrientTaskController : MonoBehaviour
     {
         Image bg = gameObject.AddComponent<Image>();
         bg.color = UIPalette.Background;
+        MiniGameVisuals.PrepareScreen(gameObject, MiniGameThemeId.Ecology);
 
         BuildTopBar();
         BuildMapSubPanel();
         BuildPlanningSubPanel();
         BuildDeliveringSubPanel();
         BuildReportSubPanel();
+
+        MiniGameVisuals.PolishHierarchy(transform, MiniGameThemeId.Ecology);
 
         ShowSubPanel(subMap);
         gameObject.SetActive(false);
@@ -204,10 +207,10 @@ public class EcologyNutrientTaskController : MonoBehaviour
         DeliveryDone = false;
         coveragePercent = 0;
 
-        dataZoneValue.text = string.Empty;
-        dataPollutionValue.text = string.Empty;
-        dataActivityValue.text = string.Empty;
-        dataRecommendValue.text = string.Empty;
+        dataZoneValue.text = "等待选择地块";
+        dataPollutionValue.text = "—";
+        dataActivityValue.text = "—";
+        dataRecommendValue.text = "选择左侧区域开始扫描";
         tierPromptText.gameObject.SetActive(false);
         tierButtonsRoot.SetActive(false);
         mapStatusText.text = string.Empty;
@@ -249,13 +252,14 @@ public class EcologyNutrientTaskController : MonoBehaviour
 
         Text title = UIFactory.CreateText("TxtEcologyTitle", subMap.transform, "归墟地表监测终端", 48, UIPalette.TextMain);
         SetAnchored(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -70f), new Vector2(900f, 70f));
+        MiniGameVisuals.AddStepRail(subMap.transform, MiniGameThemeId.Ecology, new[] { "分析地块", "规划范围", "卫星投放", "检测报告" }, 0);
 
-        // 媒体占位：地球地表地图（正式美术在此节点内替换）
-        GameObject mapSlot = UIFactory.CreateMediaSlot(
+        GameObject mapSlot = MiniGameVisuals.CreateArtSlot(
             "MediaSlot_EarthSurface",
-            "【占位】地球地表地图（待正式美术）",
             subMap.transform,
-            new Vector2(880f, 420f)
+            new Vector2(880f, 420f),
+            MiniGameThemeId.Ecology,
+            string.Empty
         );
         SetAnchored(mapSlot.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(-260f, -170f), new Vector2(880f, 420f));
 
@@ -270,7 +274,7 @@ public class EcologyNutrientTaskController : MonoBehaviour
             Button zoneBtn = UIFactory.CreateButton(
                 "BtnZone_" + zone.displayName,
                 mapSlot.transform,
-                zone.displayName,
+                (i + 1).ToString("00") + "  " + zone.displayName,
                 new Vector2(400f, 180f),
                 EcologyNutrientConfig.ParseColor(zone.colorHex),
                 26
@@ -282,7 +286,7 @@ public class EcologyNutrientTaskController : MonoBehaviour
         }
 
         // 右侧数据面板
-        Image dataPanel = UIFactory.CreatePanel("DataPanel", subMap.transform, UIPalette.Panel);
+        Image dataPanel = MiniGameVisuals.CreateCard("DataPanel", subMap.transform, new Vector2(480f, 420f), MiniGameThemeId.Ecology);
         SetAnchored(dataPanel.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(500f, -170f), new Vector2(480f, 420f));
 
         Text dataHeader = UIFactory.CreateText("TxtDataHeader", dataPanel.transform, "地块数据", 30, UIPalette.Accent);
@@ -358,12 +362,14 @@ public class EcologyNutrientTaskController : MonoBehaviour
 
         Text title = UIFactory.CreateText("TxtPlanningTitle", subPlanning.transform, "规划投放范围", 48, UIPalette.TextMain);
         SetAnchored(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -70f), new Vector2(900f, 70f));
+        MiniGameVisuals.AddStepRail(subPlanning.transform, MiniGameThemeId.Ecology, new[] { "分析地块", "规划范围", "卫星投放", "检测报告" }, 1);
 
         // 目标地块板面（可拖拽框选）
         GameObject board = new GameObject("BoardZone", typeof(RectTransform), typeof(Image), typeof(DragSelectionArea));
         board.transform.SetParent(subPlanning.transform, false);
         planningBoardImage = board.GetComponent<Image>();
-        planningBoardImage.color = UIPalette.PanelLight;
+        planningBoardImage.color = MiniGameVisuals.Theme(MiniGameThemeId.Ecology).cardSoft;
+        MiniGameVisuals.Round(planningBoardImage);
         SetAnchored(board.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -190f), new Vector2(1000f, 420f));
 
         planningBoardLabel = UIFactory.CreateText("TxtBoardLabel", board.transform, string.Empty, 28, UIPalette.TextMain);
@@ -403,13 +409,14 @@ public class EcologyNutrientTaskController : MonoBehaviour
 
         Text title = UIFactory.CreateText("TxtDeliveringTitle", subDelivering.transform, "卫星投放阵列", 48, UIPalette.TextMain);
         SetAnchored(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -70f), new Vector2(900f, 70f));
+        MiniGameVisuals.AddStepRail(subDelivering.transform, MiniGameThemeId.Ecology, new[] { "分析地块", "规划范围", "卫星投放", "检测报告" }, 2);
 
-        // 媒体占位：卫星投放动画（正式美术/视频在此节点内替换）
-        GameObject slot = UIFactory.CreateMediaSlot(
+        GameObject slot = MiniGameVisuals.CreateArtSlot(
             "MediaSlot_SatelliteDrop",
-            "【占位】卫星投放动画（待正式美术/视频）",
             subDelivering.transform,
-            new Vector2(900f, 420f)
+            new Vector2(900f, 420f),
+            MiniGameThemeId.Ecology,
+            "轨道营养液投放实况"
         );
         SetAnchored(slot.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -180f), new Vector2(900f, 420f));
 
@@ -445,15 +452,16 @@ public class EcologyNutrientTaskController : MonoBehaviour
 
         Text title = UIFactory.CreateText("TxtReportTitle", subReport.transform, "土壤检测报告", 48, UIPalette.TextMain);
         SetAnchored(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -70f), new Vector2(900f, 70f));
+        MiniGameVisuals.AddStepRail(subReport.transform, MiniGameThemeId.Ecology, new[] { "分析地块", "规划范围", "卫星投放", "检测报告" }, 3);
 
-        // 媒体占位：土壤检测报告（正式美术在此节点内替换）
-        GameObject slot = UIFactory.CreateMediaSlot(
+        GameObject slot = MiniGameVisuals.CreateArtSlot(
             "MediaSlot_SoilReport",
-            "【占位】土壤检测报告（待正式美术）",
             subReport.transform,
-            new Vector2(760f, 240f)
+            new Vector2(760f, 240f),
+            MiniGameThemeId.Ecology,
+            "生态修复前后对照"
         );
-        SetAnchored(slot.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -160f), new Vector2(760f, 240f));
+        SetAnchored(slot.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -185f), new Vector2(760f, 240f));
 
         reportZoneValue = CreateReportRow("区域名称", 0);
         reportTierValue = CreateReportRow("投放浓度", 1);
@@ -476,7 +484,7 @@ public class EcologyNutrientTaskController : MonoBehaviour
             UIPalette.TextDim,
             TextAnchor.MiddleLeft
         );
-        SetAnchored(label.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(-350f, -430f - rowIndex * 46f), new Vector2(240f, 40f));
+        SetAnchored(label.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(-350f, -445f - rowIndex * 46f), new Vector2(240f, 40f));
 
         Text value = UIFactory.CreateText(
             "TxtReportValue_" + rowIndex,
@@ -486,7 +494,7 @@ public class EcologyNutrientTaskController : MonoBehaviour
             UIPalette.TextMain,
             TextAnchor.MiddleLeft
         );
-        SetAnchored(value.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(-100f, -430f - rowIndex * 46f), new Vector2(460f, 40f));
+        SetAnchored(value.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(-100f, -445f - rowIndex * 46f), new Vector2(460f, 40f));
         return value;
     }
 
@@ -719,6 +727,7 @@ public class EcologyNutrientTaskController : MonoBehaviour
     {
         RectTransform rect = UIFactory.CreateRect(name, transform);
         UIFactory.Stretch(rect);
+        MiniGameVisuals.AddEntrance(rect.gameObject);
         rect.gameObject.SetActive(false);
         return rect.gameObject;
     }
