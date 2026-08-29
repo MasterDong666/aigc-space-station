@@ -5,7 +5,15 @@ using UnityEngine;
 public enum GameNarrativeRoute
 {
     None = 0,
-    FirstReturnToNoah = 1
+    FirstReturnToNoah = 1,
+    FinalChoice = 2
+}
+
+public enum FinalEndingChoice
+{
+    None = 0,
+    EndRestorationProgram = 1,
+    SacrificeForEarth = 2
 }
 
 /// <summary>
@@ -32,6 +40,9 @@ public static class MVPGameSession
     private static bool openingCompleted;
     private static bool firstReturnStarted;
     private static bool firstReturnCompleted;
+    private static bool biodiversityPuzzleCompleted;
+    private static bool endingCompleted;
+    private static FinalEndingChoice endingChoice;
     private static string playerName = "修复官";
     private static string avatarId = "RESTORER_A";
     private static int earthProgress = InitialEarthProgress;
@@ -49,6 +60,10 @@ public static class MVPGameSession
     public static bool OpeningCompleted => openingCompleted;
     public static bool FirstReturnStarted => firstReturnStarted;
     public static bool FirstReturnCompleted => firstReturnCompleted;
+    public static bool BiodiversityPuzzleCompleted =>
+        biodiversityPuzzleCompleted;
+    public static bool EndingCompleted => endingCompleted;
+    public static FinalEndingChoice EndingChoice => endingChoice;
     public static bool IsCurrentDayComplete =>
         CompletedToday.Count >= Enum.GetValues(typeof(MiniGameId)).Length;
     public static bool IsEndingUnlocked => earthProgress >= EndingProgress;
@@ -67,6 +82,9 @@ public static class MVPGameSession
         openingCompleted = false;
         firstReturnStarted = false;
         firstReturnCompleted = false;
+        biodiversityPuzzleCompleted = false;
+        endingCompleted = false;
+        endingChoice = FinalEndingChoice.None;
         playerName = "修复官";
         avatarId = "RESTORER_A";
         earthProgress = InitialEarthProgress;
@@ -222,9 +240,14 @@ public static class MVPGameSession
 
     public static void CompleteFirstReturnAndBeginNextWorkday()
     {
+        CompleteFirstReturn();
+        BeginNextWorkday();
+    }
+
+    public static void CompleteFirstReturn()
+    {
         firstReturnStarted = false;
         firstReturnCompleted = true;
-        BeginNextWorkday();
     }
 
     public static void CancelFirstReturn()
@@ -244,6 +267,29 @@ public static class MVPGameSession
         pendingCompletion = null;
         workday++;
         WorkdayChanged?.Invoke(workday);
+    }
+
+    public static bool CompleteBiodiversityPuzzle(int reward = 10)
+    {
+        if (biodiversityPuzzleCompleted)
+        {
+            return false;
+        }
+
+        biodiversityPuzzleCompleted = true;
+        TryAwardUniqueProgress("NOAH_BIODIVERSITY_PUZZLE", reward);
+        return true;
+    }
+
+    public static void CompleteEnding(FinalEndingChoice choice)
+    {
+        if (choice == FinalEndingChoice.None)
+        {
+            return;
+        }
+
+        endingChoice = choice;
+        endingCompleted = true;
     }
 
     public static void ResetTaskProgress()

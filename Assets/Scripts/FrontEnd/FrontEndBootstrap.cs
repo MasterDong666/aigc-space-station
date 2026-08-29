@@ -36,6 +36,9 @@ public class FrontEndBootstrap : MonoBehaviour
     private Text narrativeMedia;
     private Text narrativeProgress;
     private Text narrativeContinueLabel;
+    private Text mainStatusText;
+    private NoahHolidayUI holidayUI;
+    private EndingChoiceUI endingUI;
     private Button[] avatarButtons;
     private NarrativeSlide[] activeSlides = Array.Empty<NarrativeSlide>();
     private Action narrativeCompleted;
@@ -55,15 +58,22 @@ public class FrontEndBootstrap : MonoBehaviour
         BuildMainPanel(canvas.transform);
         BuildProfilePanel(canvas.transform);
         BuildNarrativePanel(canvas.transform);
+        BuildExtendedFlow(canvas.transform);
 
-        if (
-            MVPGameSession.TryConsumeNarrative(
-                out GameNarrativeRoute route
-            ) &&
-            route == GameNarrativeRoute.FirstReturnToNoah
-        )
+        if (MVPGameSession.TryConsumeNarrative(out GameNarrativeRoute route))
         {
-            StartFirstReturnNarrative();
+            if (route == GameNarrativeRoute.FirstReturnToNoah)
+            {
+                StartFirstReturnNarrative();
+            }
+            else if (route == GameNarrativeRoute.FinalChoice)
+            {
+                ShowEndingFlow();
+            }
+            else
+            {
+                ShowOnly(mainPanel);
+            }
         }
         else
         {
@@ -175,23 +185,22 @@ public class FrontEndBootstrap : MonoBehaviour
             new Vector2(700f, 120f)
         );
 
-        Text statusText = UIFactory.CreateText(
+        mainStatusText = UIFactory.CreateText(
             "StatusText",
             status.transform,
-            "归墟同步轨道空间站  ·  ONLINE\n地球修复进度  " +
-            MVPGameSession.EarthProgress + " / " +
-            MVPGameSession.EndingProgress,
+            string.Empty,
             23,
             new Color(0.62f, 0.91f, 0.94f, 1f),
             TextAnchor.MiddleLeft
         );
         SetAnchored(
-            statusText.rectTransform,
+            mainStatusText.rectTransform,
             Vector2.zero,
             Vector2.one,
             new Vector2(30f, 0f),
             new Vector2(-60f, 0f)
         );
+        UpdateMainStatus();
 
         Button enter = UIFactory.CreateButton(
             "EnterGame",
@@ -529,6 +538,21 @@ public class FrontEndBootstrap : MonoBehaviour
         skip.onClick.AddListener(FinishNarrative);
     }
 
+    private void BuildExtendedFlow(Transform parent)
+    {
+        holidayUI = CreateFlowModule<NoahHolidayUI>(
+            "NoahHolidayFlow",
+            parent
+        );
+        holidayUI.BuildUI();
+
+        endingUI = CreateFlowModule<EndingChoiceUI>(
+            "EndingChoiceFlow",
+            parent
+        );
+        endingUI.BuildUI();
+    }
+
     private void ShowProfile()
     {
         nameInput.text = MVPGameSession.HasPlayerProfile
@@ -632,7 +656,7 @@ public class FrontEndBootstrap : MonoBehaviour
                 "欢迎 " + MVPGameSession.PlayerName +
                 " 修复官回到诺亚。休假期间可以完成地球动植物拼图、" +
                 "解锁图鉴，并继续积累地球修复进度。",
-                "NOAH LIFE // MODULE RESERVED FOR P6-4"
+                "NOAH LIFE // BIODIVERSITY ARCHIVE ONLINE"
             )
         };
 
@@ -641,10 +665,28 @@ public class FrontEndBootstrap : MonoBehaviour
             slides,
             () =>
             {
-                MVPGameSession.CompleteFirstReturnAndBeginNextWorkday();
+                MVPGameSession.CompleteFirstReturn();
+                ShowHolidayFlow();
+            }
+        );
+    }
+
+    private void ShowHolidayFlow()
+    {
+        ShowOnly(null);
+        holidayUI.Show(
+            () =>
+            {
+                MVPGameSession.BeginNextWorkday();
                 SceneTransitionManager.EnterStationHub();
             }
         );
+    }
+
+    private void ShowEndingFlow()
+    {
+        ShowOnly(null);
+        endingUI.Show(() => ShowOnly(mainPanel));
     }
 
     private void PlayNarrative(
@@ -705,6 +747,46 @@ public class FrontEndBootstrap : MonoBehaviour
         mainPanel.SetActive(target == mainPanel);
         profilePanel.SetActive(target == profilePanel);
         narrativePanel.SetActive(target == narrativePanel);
+
+        if (holidayUI != null)
+        {
+            holidayUI.gameObject.SetActive(false);
+        }
+
+        if (endingUI != null)
+        {
+            endingUI.gameObject.SetActive(false);
+        }
+
+        if (target == mainPanel)
+        {
+            UpdateMainStatus();
+        }
+    }
+
+    private void UpdateMainStatus()
+    {
+        if (mainStatusText == null)
+        {
+            return;
+        }
+
+        string ending = MVPGameSession.EndingCompleted
+            ? "\n最终档案  " + GetEndingLabel(MVPGameSession.EndingChoice)
+            : string.Empty;
+        mainStatusText.text =
+            "归墟同步轨道空间站  ·  ONLINE\n地球修复进度  " +
+            MVPGameSession.EarthProgress + " / " +
+            MVPGameSession.EndingProgress + ending;
+    }
+
+    private static string GetEndingLabel(FinalEndingChoice choice)
+    {
+        return choice == FinalEndingChoice.EndRestorationProgram
+            ? "把未来交给生命"
+            : choice == FinalEndingChoice.SacrificeForEarth
+                ? "第七十九任的最后航程"
+                : "尚未选择";
     }
 
     private static GameObject CreateFullPanel(string name, Transform parent)
@@ -712,6 +794,13 @@ public class FrontEndBootstrap : MonoBehaviour
         RectTransform rect = UIFactory.CreateRect(name, parent);
         UIFactory.Stretch(rect);
         return rect.gameObject;
+    }
+
+    private static T CreateFlowModule<T>(string name, Transform parent)
+        where T : MonoBehaviour
+    {
+        GameObject root = CreateFullPanel(name, parent);
+        return root.AddComponent<T>();
     }
 
     private static InputField CreateInputField(Transform parent)

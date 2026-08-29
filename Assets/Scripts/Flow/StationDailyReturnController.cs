@@ -125,14 +125,25 @@ public class StationDailyReturnController : MonoBehaviour
     private void ShowReturnPanel()
     {
         bool firstReturn = !MVPGameSession.FirstReturnCompleted;
+        bool endingReady =
+            MVPGameSession.IsEndingUnlocked &&
+            !MVPGameSession.EndingCompleted;
 
-        eyebrowText.text = firstReturn
+        eyebrowText.text = endingReady
+            ? "CHENXI // 最终协议已解锁"
+            : firstReturn
             ? "CHENXI // 月度工作周期完成"
             : $"CHENXI // 第 {MVPGameSession.Workday} 工作日完成";
-        titleText.text = firstReturn
+        titleText.text = endingReady
+            ? "地球重塑计划等待最终指令"
+            : firstReturn
             ? "返程飞船已经抵达"
             : "今日修复任务已结算";
-        bodyText.text = firstReturn
+        bodyText.text = endingReady
+            ? "地球修复进度已经达到 50。星际轨道、生态投放与基因播撒" +
+              "共同触发了最终协议。晨曦已准备好结局前传和最后的选择。\n\n" +
+              "这是不可回避的决定，但你可以在选择前完整阅读两份方案。"
+            : firstReturn
             ? "恭喜 " + MVPGameSession.PlayerName +
               " 修复官完成今日三项任务。今天也是本月最后一个工作日，" +
               "返程飞船已停靠空间站，你可以随时返回诺亚星。\n\n" +
@@ -142,7 +153,11 @@ public class StationDailyReturnController : MonoBehaviour
               "开始下一工作日后，三个终端会重新开放。\n\n" +
               "当前地球修复进度：" + MVPGameSession.EarthProgress + " / " +
               MVPGameSession.EndingProgress;
-        actionLabel.text = firstReturn ? "去返程  ›" : "开始下一工作日  ›";
+        actionLabel.text = endingReady
+            ? "进入最终选择  ›"
+            : firstReturn
+                ? "去返程  ›"
+                : "开始下一工作日  ›";
 
         panelRoot.SetActive(true);
         ResolveReferences();
@@ -159,6 +174,21 @@ public class StationDailyReturnController : MonoBehaviour
 
     private void HandleAction()
     {
+        if (
+            MVPGameSession.IsEndingUnlocked &&
+            !MVPGameSession.EndingCompleted
+        )
+        {
+            MVPGameSession.RequestNarrative(GameNarrativeRoute.FinalChoice);
+
+            if (!SceneTransitionManager.EnterFrontEnd())
+            {
+                MVPGameSession.RequestNarrative(GameNarrativeRoute.None);
+            }
+
+            return;
+        }
+
         if (!MVPGameSession.FirstReturnCompleted)
         {
             if (!MVPGameSession.TryStartFirstReturn())

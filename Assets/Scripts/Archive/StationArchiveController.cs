@@ -58,6 +58,7 @@ public class StationArchiveController : MonoBehaviour
 
     private void Awake()
     {
+        EnsurePuzzleArchiveEntry();
         ResolveSceneReferences();
         ApplyRuntimeFont();
         RegisterButtons();
@@ -244,6 +245,7 @@ public class StationArchiveController : MonoBehaviour
         playerInteractor = interactor;
         flowController = flow;
         entries = archiveEntries ?? new List<ArchiveEntryData>();
+        EnsurePuzzleArchiveEntry();
     }
 
     private void RegisterButtons()
@@ -524,9 +526,45 @@ public class StationArchiveController : MonoBehaviour
         bool isLegacyFamilyFile =
             entry.id == "OFF-077" || entry.id == "OFF-078";
 
+        if (entry.id == "BIO-GINKGO")
+        {
+            return MVPGameSession.BiodiversityPuzzleCompleted;
+        }
+
         return
             CurrentUnlockStage >= entry.unlockStage ||
             (legacyOfficerArchivesUnlocked && isLegacyFamilyFile);
+    }
+
+    private void EnsurePuzzleArchiveEntry()
+    {
+        if (entries == null)
+        {
+            entries = new List<ArchiveEntryData>();
+        }
+
+        foreach (ArchiveEntryData entry in entries)
+        {
+            if (entry != null && entry.id == "BIO-GINKGO")
+            {
+                return;
+            }
+        }
+
+        entries.Add(
+            new ArchiveEntryData(
+                ArchiveCategory.Civilization,
+                "BIO-GINKGO",
+                "银杏与早期复绿群落",
+                "诺亚生物拼图 · 首份复育图鉴",
+                "BIOLOGICAL ARCHIVE // RESTORED",
+                "银杏是地球现存最古老的种子植物之一。扇形叶片在约两亿年前" +
+                "已经出现。修复官通过拼图复原的不只是一个物种，而是一套" +
+                "由苔藓、蕨类、昆虫与幼苗共同构成的早期生态关系。\n\n" +
+                "晨曦备注：真正的复苏从来不是让一个生命独自回来。",
+                99
+            )
+        );
     }
 
     private void HandleRepairStageChanged(int stage)
