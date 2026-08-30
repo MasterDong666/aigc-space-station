@@ -244,11 +244,11 @@ public class GeneCultivationTaskController : MonoBehaviour
         MiniGameVisuals.AddStepRail(subSeeding.transform, MiniGameThemeId.Gene, new[] { "基因样本", "播种区域", "无人机群", "快速培育", "结果" }, 1);
 
         Text hint = UIFactory.CreateText("TxtSeedingHint", subSeeding.transform, "在地图上按住并拖拽，框选一块包含绿色适宜地块的播种区", 26, UIPalette.TextDim);
-        SetAnchored(hint.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -160f), new Vector2(1000f, 40f));
+        SetAnchored(hint.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -165f), new Vector2(1100f, 40f));
 
         // 播种拖拽板
         Image board = UIFactory.CreatePanel("SeedingBoard", subSeeding.transform, new Color(0.02f, 0.05f, 0.12f, 0.9f));
-        SetAnchored(board.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -255f), new Vector2(920f, 380f));
+        SetAnchored(board.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -225f), new Vector2(1040f, 480f));
         MiniGameVisuals.Round(board);
         board.raycastTarget = true;
 
@@ -261,7 +261,7 @@ public class GeneCultivationTaskController : MonoBehaviour
         selectionRect = selImage.rectTransform;
         selectionRect.anchorMin = new Vector2(0.5f, 1f);
         selectionRect.anchorMax = new Vector2(0.5f, 1f);
-        selectionRect.pivot = new Vector2(0.5f, 1f);
+        selectionRect.pivot = new Vector2(0.5f, 0.5f);
         selectionRect.sizeDelta = Vector2.zero;
         HideSelectionRect();
 
@@ -272,8 +272,8 @@ public class GeneCultivationTaskController : MonoBehaviour
             SeedingRegion region = regions[i];
             int row = i / 3;
             int col = i % 3;
-            float cx = (col - 1) * 300f;
-            float cy = (row == 0 ? 1f : -1f) * 110f;
+            float cx = (col - 1) * 335f;
+            float cy = row == 0 ? -125f : -345f;
 
             Image cell = UIFactory.CreatePanel(
                 "CellRegion_" + region.displayName,
@@ -283,10 +283,19 @@ public class GeneCultivationTaskController : MonoBehaviour
             RectTransform cellRect = cell.rectTransform;
             cellRect.anchorMin = new Vector2(0.5f, 1f);
             cellRect.anchorMax = new Vector2(0.5f, 1f);
-            cellRect.pivot = new Vector2(0.5f, 1f);
-            cellRect.sizeDelta = new Vector2(280f, 140f);
+            cellRect.pivot = new Vector2(0.5f, 0.5f);
+            cellRect.sizeDelta = new Vector2(305f, 170f);
             cellRect.anchoredPosition = new Vector2(cx, cy);
             MiniGameVisuals.Round(cell);
+
+            // 卡片既可直接点击，也可作为拖拽起点；避免子文字吞掉 Pointer 事件。
+            int index = i;
+            Button cellButton = cell.gameObject.AddComponent<Button>();
+            cellButton.targetGraphic = cell;
+            cellButton.transition = Selectable.Transition.None;
+            cellButton.onClick.AddListener(() => OnRegionClicked(index));
+            RegionDragHandler cellDragHandler = cell.gameObject.AddComponent<RegionDragHandler>();
+            cellDragHandler.owner = this;
 
             Text cellLabel = UIFactory.CreateText(
                 "CellText",
@@ -296,6 +305,7 @@ public class GeneCultivationTaskController : MonoBehaviour
                 Color.white
             );
             UIFactory.Stretch(cellLabel.rectTransform);
+            cellLabel.raycastTarget = false;
 
             regionCells.Add(new RegionCell
             {
@@ -304,7 +314,7 @@ public class GeneCultivationTaskController : MonoBehaviour
                 rect = cellRect,
                 image = cell,
                 center = new Vector2(cx, cy),
-                half = new Vector2(140f, 70f),
+                half = new Vector2(152.5f, 85f),
             });
         }
 
@@ -315,7 +325,7 @@ public class GeneCultivationTaskController : MonoBehaviour
             28,
             UIPalette.Warn
         );
-        SetAnchored(seedingStatusText.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -485f), new Vector2(1000f, 50f));
+        SetAnchored(seedingStatusText.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -730f), new Vector2(1080f, 50f));
 
         releaseDronesButton = UIFactory.CreateButton(
             "BtnReleaseDrones",
@@ -325,7 +335,7 @@ public class GeneCultivationTaskController : MonoBehaviour
             UIPalette.Ok,
             30
         );
-        SetAnchored(releaseDronesButton.GetComponent<RectTransform>(), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 150f), new Vector2(320f, 72f));
+        SetAnchored(releaseDronesButton.GetComponent<RectTransform>(), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 115f), new Vector2(320f, 72f));
         releaseDronesButton.onClick.AddListener(OnReleaseDronesClicked);
         releaseDronesButton.gameObject.SetActive(false);
     }
@@ -580,6 +590,7 @@ public class GeneCultivationTaskController : MonoBehaviour
             eventData.pressEventCamera,
             out dragBeginLocal
         );
+        dragBeginLocal = ClampToSeedingBoard(dragBeginLocal);
         UpdateSelectionRect(dragBeginLocal, dragBeginLocal);
     }
 
@@ -596,6 +607,7 @@ public class GeneCultivationTaskController : MonoBehaviour
             eventData.pressEventCamera,
             out Vector2 current
         );
+        current = ClampToSeedingBoard(current);
         UpdateSelectionRect(dragBeginLocal, current);
     }
 
@@ -649,6 +661,44 @@ public class GeneCultivationTaskController : MonoBehaviour
         }
 
         HideSelectionRect();
+    }
+
+    private void OnRegionClicked(int index)
+    {
+        if (index < 0 || index >= regionCells.Count)
+        {
+            return;
+        }
+
+        RestoreRegionColors();
+        RegionCell cell = regionCells[index];
+
+        if (!cell.region.suitable)
+        {
+            SelectedRegionId = null;
+            selectedRegionIndex = -1;
+            cell.image.color = UIPalette.Warn;
+            seedingStatusText.color = UIPalette.Warn;
+            seedingStatusText.text = cell.region.displayName + "不适合播种，请选择绿色适宜地块。";
+            releaseDronesButton.gameObject.SetActive(false);
+            return;
+        }
+
+        selectedRegionIndex = index;
+        SelectedRegionId = cell.region.id;
+        cell.image.color = UIPalette.Accent;
+        seedingStatusText.color = UIPalette.Ok;
+        seedingStatusText.text = "已选择播种区：" + cell.region.displayName;
+        releaseDronesButton.gameObject.SetActive(true);
+    }
+
+    private Vector2 ClampToSeedingBoard(Vector2 local)
+    {
+        RectTransform boardRect = selectionRect.parent as RectTransform;
+        Rect bounds = boardRect.rect;
+        local.x = Mathf.Clamp(local.x, bounds.xMin, bounds.xMax);
+        local.y = Mathf.Clamp(local.y, bounds.yMin, bounds.yMax);
+        return local;
     }
 
     private void UpdateSelectionRect(Vector2 a, Vector2 b)

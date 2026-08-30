@@ -6,8 +6,8 @@ using UnityEngine.UI;
 /// <summary>
 /// 星际轨道巡检运维面板（v3 完整交互）。
 /// 阶段一：异常轨道选择——识别并选中当前工作日的异常轨道。
-/// 阶段二：三条真实可拖动 Slider（能量配比 / 粒子稳定值 / 输送倾角）校准，
-///         每条 Slider 上有绿色目标区间，拖入区间内【锁定参数】才算正确。
+/// 阶段二：三条自动往返的扫描指针（能量配比 / 粒子稳定值 / 输送倾角）校准，
+///         玩家在指针进入绿色目标区间时点击【锁定参数】。
 /// 阶段三：手动提交运维报告；或启用【全自动托管】一键完成当天（奖励效率 -15%）。
 /// 彩蛋：连续 7 个“完全手动”工作日解锁前代修复官日志碎片（一次性）。
 /// 所有数值读取 OrbitCalibrationConfig，不在本类散落硬编码。
@@ -33,11 +33,13 @@ public class OrbitTaskController : MonoBehaviour
     private sealed class ParamGauge
     {
         public CalibrationParam param;
-        public Slider slider;
+        public RectTransform pointer;
+        public Image pointerImage;
         public Text valueLabel;
         public Image zoneImage;
         public bool locked;
         public float lockedValue;
+        public float startTime;
     }
 
     private Stage stage;
@@ -57,6 +59,7 @@ public class OrbitTaskController : MonoBehaviour
     private Image logPopup;
     private Text logPopupBody;
     private bool taskResultSent;
+    private Coroutine flashRoutine;
 
     public int CurrentParamIndex => currentIndex;
     public int CalibratedCount => currentIndex;
@@ -73,7 +76,7 @@ public class OrbitTaskController : MonoBehaviour
         }
 
         ParamGauge gauge = gauges[index];
-        return gauge.locked ? gauge.lockedValue : gauge.slider.value;
+        return gauge.locked ? gauge.lockedValue : ComputeValue(gauge);
     }
 
     public void BuildUI()
@@ -238,7 +241,7 @@ public class OrbitTaskController : MonoBehaviour
         Text instruction = UIFactory.CreateText(
             "TxtCalibInstruction",
             calibrationRoot.transform,
-            "拖动滑条，将三个参数调整进绿色稳定区间后逐项锁定",
+            "观察扫描指针，在它进入发光稳定区时点击锁定参数",
             23,
             UIPalette.TextDim
         );
@@ -293,26 +296,30 @@ public class OrbitTaskController : MonoBehaviour
             valueLabel.fontStyle = FontStyle.Bold;
             SetAnchored(valueLabel.rectTransform, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-178f, -14f), new Vector2(150f, 42f));
 
-            // 真实可拖动 Slider（替换旧版自动指针）
-            Slider slider = UIFactory.CreateSlider(
-                "Slider_" + param.displayName,
+            Image track = UIFactory.CreatePanel(
+                "Track_" + param.displayName,
                 rowCard.transform,
-                new Vector2(TrackWidth, 40f)
+                new Color(0.02f, 0.07f, 0.12f, 0.95f)
             );
-            RectTransform sliderRect = slider.GetComponent<RectTransform>();
-            sliderRect.anchorMin = new Vector2(0.5f, 1f);
-            sliderRect.anchorMax = new Vector2(0.5f, 1f);
-            sliderRect.pivot = new Vector2(0.5f, 1f);
-            sliderRect.anchoredPosition = new Vector2(0f, -73f);
+            SetAnchored(track.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -73f), new Vector2(TrackWidth, 32f));
+            track.raycastTarget = false;
 
-            // 绿色目标区间覆盖层（位于背景之后、填充/手柄之前）
-            Image zone = UIFactory.CreatePanel("Zone_" + param.displayName, slider.transform, ZoneColor(locked: false));
+            // 绿色目标区间。
+            Image zone = UIFactory.CreatePanel("Zone_" + param.displayName, track.transform, ZoneColor(locked: false));
             zone.rectTransform.anchorMin = new Vector2(param.minValue / 100f, 0f);
             zone.rectTransform.anchorMax = new Vector2(param.maxValue / 100f, 1f);
-            zone.rectTransform.offsetMin = new Vector2(0f, 6f);
-            zone.rectTransform.offsetMax = new Vector2(0f, -6f);
+            zone.rectTransform.offsetMin = new Vector2(0f, 4f);
+            zone.rectTransform.offsetMax = new Vector2(0f, -4f);
             zone.raycastTarget = false;
-            zone.transform.SetSiblingIndex(1);
+
+            // 白色竖杠自动在整条轨道上来回扫描，不能拖动。
+            Image pointer = UIFactory.CreatePanel("Pointer_" + param.displayName, track.transform, UIPalette.TextMain);
+            pointer.rectTransform.anchorMin = new Vector2(0f, 0.5f);
+            pointer.rectTransform.anchorMax = new Vector2(0f, 0.5f);
+            pointer.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+            pointer.rectTransform.sizeDelta = new Vector2(10f, 48f);
+            pointer.raycastTarget = false;
+            MiniGameVisuals.MakeCircle(pointer);
 
             Text rangeLabel = UIFactory.CreateText(
                 "TxtRange_" + param.displayName,
@@ -323,13 +330,11 @@ public class OrbitTaskController : MonoBehaviour
             );
             SetAnchored(rangeLabel.rectTransform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 8f), new Vector2(400f, 28f));
 
-            int captured = i;
-            slider.onValueChanged.AddListener(v => OnSliderChanged(captured, v));
-
             gauges[i] = new ParamGauge
             {
                 param = param,
-                slider = slider,
+                pointer = pointer.rectTransform,
+                pointerImage = pointer,
                 valueLabel = valueLabel,
                 zoneImage = zone,
             };
@@ -409,7 +414,26 @@ public class OrbitTaskController : MonoBehaviour
 
     public void Hide()
     {
+        StopFlash();
         gameObject.SetActive(false);
+    }
+
+    private void Update()
+    {
+        if (stage != Stage.Calibrating || allCalibrated || gauges == null || currentIndex >= gauges.Length)
+        {
+            return;
+        }
+
+        ParamGauge gauge = gauges[currentIndex];
+        float value = ComputeValue(gauge);
+        gauge.pointer.anchoredPosition = new Vector2(value / 100f * TrackWidth, 0f);
+        gauge.valueLabel.text = Mathf.RoundToInt(value).ToString();
+    }
+
+    private static float ComputeValue(ParamGauge gauge)
+    {
+        return Mathf.PingPong((Time.time - gauge.startTime) * gauge.param.scanSpeed, 100f);
     }
 
     private void RefreshOrbitOptions()
@@ -452,9 +476,11 @@ public class OrbitTaskController : MonoBehaviour
         {
             ParamGauge gauge = gauges[i];
             gauge.locked = false;
-            gauge.slider.value = 50f;
-            gauge.valueLabel.text = "50";
+            gauge.startTime = Time.time;
+            gauge.valueLabel.text = "0";
             gauge.zoneImage.color = ZoneColor(false);
+            gauge.pointerImage.color = UIPalette.TextMain;
+            gauge.pointer.anchoredPosition = Vector2.zero;
         }
 
         lockButton.gameObject.SetActive(true);
@@ -465,22 +491,6 @@ public class OrbitTaskController : MonoBehaviour
         statusText.text = "已锁定异常轨道：" + OrbitCalibrationConfig.OrbitNames[abnormalIndex] + "。开始校准参数";
     }
 
-    private void OnSliderChanged(int index, float value)
-    {
-        if (gauges == null || index < 0 || index >= gauges.Length)
-        {
-            return;
-        }
-
-        ParamGauge gauge = gauges[index];
-        if (gauge.locked)
-        {
-            return;
-        }
-
-        gauge.valueLabel.text = Mathf.RoundToInt(value).ToString();
-    }
-
     private void OnLockClicked()
     {
         if (stage != Stage.Calibrating)
@@ -489,7 +499,7 @@ public class OrbitTaskController : MonoBehaviour
         }
 
         ParamGauge gauge = gauges[currentIndex];
-        float value = gauge.slider.value;
+        float value = ComputeValue(gauge);
 
         if (gauge.param.IsInRange(value))
         {
@@ -513,13 +523,38 @@ public class OrbitTaskController : MonoBehaviour
             }
             else
             {
+                gauges[currentIndex].startTime = Time.time;
                 progressText.text = "校准进度：" + currentIndex + " / 3";
             }
         }
         else
         {
             statusText.color = UIPalette.Warn;
-            statusText.text = "滑条未进入稳定区间，请调整后再锁定。";
+            statusText.text = "未捕捉到稳定区间，观察白色扫描杠后再次点击。";
+            StopFlash();
+            flashRoutine = StartCoroutine(FlashPointer(gauge));
+        }
+    }
+
+    private IEnumerator FlashPointer(ParamGauge gauge)
+    {
+        gauge.pointerImage.color = UIPalette.Warn;
+        yield return new WaitForSeconds(0.45f);
+
+        if (!gauge.locked)
+        {
+            gauge.pointerImage.color = UIPalette.TextMain;
+        }
+
+        flashRoutine = null;
+    }
+
+    private void StopFlash()
+    {
+        if (flashRoutine != null)
+        {
+            StopCoroutine(flashRoutine);
+            flashRoutine = null;
         }
     }
 

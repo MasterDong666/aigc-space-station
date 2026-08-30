@@ -89,9 +89,11 @@ public class DragSelectionArea : MonoBehaviour, IPointerDownHandler, IDragHandle
 
     private Vector2 ClampToBoard(Vector2 local)
     {
-        Vector2 half = rectT.rect.size * 0.5f;
-        local.x = Mathf.Clamp(local.x, -half.x, half.x);
-        local.y = Mathf.Clamp(local.y, -half.y, half.y);
+        // RectTransform 的 pivot 不一定在中心。直接使用 rect 边界，避免顶部一半
+        // 被错误裁掉（本项目板面 pivot 位于 top-center）。
+        Rect bounds = rectT.rect;
+        local.x = Mathf.Clamp(local.x, bounds.xMin, bounds.xMax);
+        local.y = Mathf.Clamp(local.y, bounds.yMin, bounds.yMax);
         return local;
     }
 
@@ -117,6 +119,10 @@ public class DragSelectionArea : MonoBehaviour, IPointerDownHandler, IDragHandle
 /// </summary>
 public class EcologyNutrientTaskController : MonoBehaviour
 {
+    private const float PlanningBoardWidth = 1080f;
+    private const float PlanningBoardHeight = 470f;
+    private const float DeliveryBoardHeight = 460f;
+
     /// <summary>任务内阶段（供测试与调试读取）。</summary>
     public enum Phase
     {
@@ -260,11 +266,11 @@ public class EcologyNutrientTaskController : MonoBehaviour
         GameObject mapSlot = MiniGameVisuals.CreateArtSlot(
             "MediaSlot_EarthSurface",
             subMap.transform,
-            new Vector2(880f, 420f),
+            new Vector2(900f, 510f),
             MiniGameThemeId.Ecology,
             string.Empty
         );
-        SetAnchored(mapSlot.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(-260f, -170f), new Vector2(880f, 420f));
+        SetAnchored(mapSlot.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(-300f, -175f), new Vector2(900f, 510f));
 
         // 四块污染地块（色块占位，正式美术替换节点内容）
         PollutionZone[] zones = EcologyNutrientConfig.Zones;
@@ -278,19 +284,19 @@ public class EcologyNutrientTaskController : MonoBehaviour
                 "BtnZone_" + zone.displayName,
                 mapSlot.transform,
                 (i + 1).ToString("00") + "  " + zone.displayName,
-                new Vector2(400f, 180f),
+                new Vector2(410f, 210f),
                 EcologyNutrientConfig.ParseColor(zone.colorHex),
                 26
             );
-            SetAnchored(zoneBtn.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2((col - 0.5f) * 420f, -40f - row * 200f), new Vector2(400f, 180f));
+            SetAnchored(zoneBtn.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2((col - 0.5f) * 430f, -38f - row * 232f), new Vector2(410f, 210f));
 
             int index = i;
             zoneBtn.onClick.AddListener(() => OnZoneClicked(index));
         }
 
         // 右侧数据面板
-        Image dataPanel = MiniGameVisuals.CreateCard("DataPanel", subMap.transform, new Vector2(480f, 420f), MiniGameThemeId.Ecology);
-        SetAnchored(dataPanel.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(500f, -170f), new Vector2(480f, 420f));
+        Image dataPanel = MiniGameVisuals.CreateCard("DataPanel", subMap.transform, new Vector2(520f, 510f), MiniGameThemeId.Ecology);
+        SetAnchored(dataPanel.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(500f, -175f), new Vector2(520f, 510f));
 
         Text dataHeader = UIFactory.CreateText("TxtDataHeader", dataPanel.transform, "地块数据", 30, UIPalette.Accent);
         SetAnchored(dataHeader.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -16f), new Vector2(400f, 40f));
@@ -301,7 +307,7 @@ public class EcologyNutrientTaskController : MonoBehaviour
         dataRecommendValue = CreateDataRow(dataPanel.transform, "建议", 3);
 
         tierPromptText = UIFactory.CreateText("TxtTierPrompt", dataPanel.transform, "【请选择营养液浓度】", 24, UIPalette.Accent);
-        SetAnchored(tierPromptText.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -270f), new Vector2(400f, 34f));
+        SetAnchored(tierPromptText.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -282f), new Vector2(440f, 34f));
         tierPromptText.gameObject.SetActive(false);
 
         // 浓度按钮
@@ -315,11 +321,11 @@ public class EcologyNutrientTaskController : MonoBehaviour
                 "BtnTier_" + tier.displayName,
                 tierButtonsRoot.transform,
                 tier.displayName,
-                new Vector2(100f, 60f),
+                new Vector2(104f, 56f),
                 UIPalette.PanelLight,
                 24
             );
-            SetAnchored(tierBtn.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2((i - 1.5f) * 112f, -320f), new Vector2(100f, 60f));
+            SetAnchored(tierBtn.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2((i - 1.5f) * 116f, -326f), new Vector2(104f, 56f));
 
             int index = i;
             tierBtn.onClick.AddListener(() => OnTierClicked(index));
@@ -327,10 +333,12 @@ public class EcologyNutrientTaskController : MonoBehaviour
         tierButtonsRoot.SetActive(false);
 
         mapStatusText = UIFactory.CreateText("TxtMapStatus", dataPanel.transform, "", 22, UIPalette.Warn);
-        SetAnchored(mapStatusText.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -380f), new Vector2(420f, 34f));
+        mapStatusText.horizontalOverflow = HorizontalWrapMode.Wrap;
+        mapStatusText.verticalOverflow = VerticalWrapMode.Truncate;
+        SetAnchored(mapStatusText.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -393f), new Vector2(460f, 58f));
 
-        resetTierButton = UIFactory.CreateButton("BtnResetTier", dataPanel.transform, "重置浓度", new Vector2(160f, 52f), UIPalette.PanelLight, 22);
-        SetAnchored(resetTierButton.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -415f), new Vector2(160f, 52f));
+        resetTierButton = UIFactory.CreateButton("BtnResetTier", dataPanel.transform, "重置浓度", new Vector2(176f, 48f), UIPalette.PanelLight, 22);
+        SetAnchored(resetTierButton.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -456f), new Vector2(176f, 48f));
         resetTierButton.onClick.AddListener(OnResetTierClicked);
         resetTierButton.gameObject.SetActive(false);
     }
@@ -345,7 +353,9 @@ public class EcologyNutrientTaskController : MonoBehaviour
             UIPalette.TextDim,
             TextAnchor.MiddleLeft
         );
-        SetAnchored(label.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(-190f, -70f - rowIndex * 52f), new Vector2(160f, 36f));
+        float rowY = -72f - rowIndex * 48f;
+        float rowHeight = rowIndex == 3 ? 64f : 36f;
+        SetAnchored(label.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(-190f, rowY), new Vector2(120f, rowHeight));
 
         Text value = UIFactory.CreateText(
             "TxtDataValue_" + rowIndex,
@@ -355,7 +365,9 @@ public class EcologyNutrientTaskController : MonoBehaviour
             UIPalette.TextMain,
             TextAnchor.MiddleLeft
         );
-        SetAnchored(value.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(-20f, -70f - rowIndex * 52f), new Vector2(280f, 36f));
+        value.horizontalOverflow = HorizontalWrapMode.Wrap;
+        value.verticalOverflow = VerticalWrapMode.Truncate;
+        SetAnchored(value.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(70f, rowY), new Vector2(330f, rowHeight));
         return value;
     }
 
@@ -373,35 +385,37 @@ public class EcologyNutrientTaskController : MonoBehaviour
         planningBoardImage = board.GetComponent<Image>();
         planningBoardImage.color = MiniGameVisuals.Theme(MiniGameThemeId.Ecology).cardSoft;
         MiniGameVisuals.Round(planningBoardImage);
-        SetAnchored(board.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -190f), new Vector2(1000f, 420f));
+        SetAnchored(board.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -200f), new Vector2(PlanningBoardWidth, PlanningBoardHeight));
 
         planningBoardLabel = UIFactory.CreateText("TxtBoardLabel", board.transform, string.Empty, 28, UIPalette.TextMain);
         SetAnchored(planningBoardLabel.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -30f), new Vector2(800f, 40f));
+        planningBoardLabel.raycastTarget = false;
 
         // 半透明选择框
         Image box = UIFactory.CreatePanel("SelectionBox", board.transform, new Color(UIPalette.Accent.r, UIPalette.Accent.g, UIPalette.Accent.b, 0.35f));
-        box.rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
-        box.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+        // Board 使用 top-center pivot；选择框也锚定顶部，确保本地坐标覆盖整张图。
+        box.rectTransform.anchorMin = new Vector2(0.5f, 1f);
+        box.rectTransform.anchorMax = new Vector2(0.5f, 1f);
         box.rectTransform.pivot = new Vector2(0.5f, 0.5f);
         box.gameObject.SetActive(false);
 
         dragArea = board.GetComponent<DragSelectionArea>();
         dragArea.selectionBox = box.rectTransform;
-        dragArea.minArea = 1000f * 420f * EcologyNutrientConfig.MinSelectionRatio;
+        dragArea.minArea = PlanningBoardWidth * PlanningBoardHeight * EcologyNutrientConfig.MinSelectionRatio;
         dragArea.SelectionFinished += OnSelectionFinished;
 
         Text hint = UIFactory.CreateText("TxtPlanningHint", subPlanning.transform, "按住鼠标在地块范围内拖动，框选投放区域", 24, UIPalette.TextDim);
-        SetAnchored(hint.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -640f), new Vector2(900f, 36f));
+        SetAnchored(hint.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -685f), new Vector2(1000f, 36f));
 
         planningStatusText = UIFactory.CreateText("TxtPlanningStatus", subPlanning.transform, "", 26, UIPalette.Warn);
-        SetAnchored(planningStatusText.rectTransform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 220f), new Vector2(1000f, 44f));
+        SetAnchored(planningStatusText.rectTransform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 225f), new Vector2(1000f, 44f));
 
         Button replan = UIFactory.CreateButton("BtnReplan", subPlanning.transform, "重新规划", new Vector2(280f, 72f), UIPalette.PanelLight, 30);
-        SetAnchored(replan.GetComponent<RectTransform>(), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 140f), new Vector2(280f, 72f));
+        SetAnchored(replan.GetComponent<RectTransform>(), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(-165f, 125f), new Vector2(280f, 72f));
         replan.onClick.AddListener(OnReplanClicked);
 
         confirmAreaButton = UIFactory.CreateButton("BtnConfirmArea", subPlanning.transform, "确认区域", new Vector2(280f, 72f), UIPalette.Ok, 30);
-        SetAnchored(confirmAreaButton.GetComponent<RectTransform>(), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 50f), new Vector2(280f, 72f));
+        SetAnchored(confirmAreaButton.GetComponent<RectTransform>(), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(165f, 125f), new Vector2(280f, 72f));
         confirmAreaButton.onClick.AddListener(OnConfirmAreaClicked);
         confirmAreaButton.gameObject.SetActive(false);
     }
@@ -417,11 +431,11 @@ public class EcologyNutrientTaskController : MonoBehaviour
         GameObject slot = MiniGameVisuals.CreateArtSlot(
             "MediaSlot_SatelliteDrop",
             subDelivering.transform,
-            new Vector2(900f, 420f),
+            new Vector2(1000f, DeliveryBoardHeight),
             MiniGameThemeId.Ecology,
             "轨道营养液投放实况"
         );
-        SetAnchored(slot.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -180f), new Vector2(900f, 420f));
+        SetAnchored(slot.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -220f), new Vector2(1000f, DeliveryBoardHeight));
 
         // 白雾覆盖层（投放动画的一部分，正式版可替换为粒子/视频）
         fogOverlay = UIFactory.CreatePanel("FogOverlay", slot.transform, new Color(1f, 1f, 1f, 0f));
@@ -437,7 +451,7 @@ public class EcologyNutrientTaskController : MonoBehaviour
         scanLine = line.rectTransform;
 
         deliveryStatusText = UIFactory.CreateText("TxtDeliveryStatus", subDelivering.transform, "", 30, UIPalette.Accent);
-        SetAnchored(deliveryStatusText.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -640f), new Vector2(1000f, 50f));
+        SetAnchored(deliveryStatusText.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -700f), new Vector2(1000f, 50f));
 
         launchButton = UIFactory.CreateButton("BtnLaunchSatellite", subDelivering.transform, "启动卫星投放阵列", new Vector2(340f, 72f), UIPalette.AccentDim, 28);
         SetAnchored(launchButton.GetComponent<RectTransform>(), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 150f), new Vector2(340f, 72f));
@@ -588,7 +602,7 @@ public class EcologyNutrientTaskController : MonoBehaviour
     {
         if (dragArea.HasValidSelection)
         {
-            float boardArea = 1000f * 420f;
+            float boardArea = PlanningBoardWidth * PlanningBoardHeight;
             float ratio = dragArea.CurrentRect.width * dragArea.CurrentRect.height / boardArea;
             coveragePercent = Mathf.RoundToInt(ratio * 100f);
 
@@ -645,7 +659,7 @@ public class EcologyNutrientTaskController : MonoBehaviour
             float t = Mathf.Clamp01(elapsed / duration);
 
             fogOverlay.color = new Color(1f, 1f, 1f, Mathf.Lerp(0f, 0.55f, t));
-            scanLine.anchoredPosition = new Vector2(0f, -420f * t);
+            scanLine.anchoredPosition = new Vector2(0f, -DeliveryBoardHeight * t);
 
             yield return null;
         }
