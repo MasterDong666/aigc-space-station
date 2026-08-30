@@ -61,11 +61,13 @@ public class GeneCultivationTaskController : MonoBehaviour
     private GenePlotData activePlot;
 
     private Text resultSporeValue;
-    private Text resultRegionValue;
+    private Text resultSowTimeValue;
+    private Text resultQualityValue;
     private Text resultStatusValue;
     private Text resultCommunityValue;
-    private Image mutationFlash;
-    private Text mutationStatusText;
+    private Text resultMutationValue;
+    private Image mutationSprout;
+    private Button mutationSproutButton;
     private Image mutationPopup;
     private Text mutationPopupBody;
 
@@ -85,8 +87,12 @@ public class GeneCultivationTaskController : MonoBehaviour
             return;
         }
 
+        // 把播种时刻回拨到 73 小时前：既早于 72 小时成熟点（成为"已成熟"），
+        // 又保留接近 1 小时的余量便于显示剩余时间。matureAt 显式重算以保持一致。
         plot.sowedAtUtcTicks =
             (DateTime.UtcNow - TimeSpan.FromHours(73f)).Ticks;
+        plot.matureAtUtcTicks = plot.sowedAtUtcTicks + MVPGameSession.MatureTicks;
+        SaveManager.TrySave();
     }
 
     public void BuildUI()
@@ -198,7 +204,10 @@ public class GeneCultivationTaskController : MonoBehaviour
                 26
             );
             SetAnchored(btn.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2((i - 1) * 330f, -285f), new Vector2(300f, 92f));
-            btn.interactable = selectable;
+
+            // 锁定节点仍可点击，用于在详情区提示解锁条件（见 OnSporeClicked）。
+            // 视觉上通过 Locked 配色 + "未解锁"文案区分。
+            btn.interactable = true;
 
             int index = i;
             btn.onClick.AddListener(() => OnSporeClicked(index));
@@ -415,22 +424,38 @@ public class GeneCultivationTaskController : MonoBehaviour
         SetAnchored(slot.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -175f), new Vector2(760f, 220f));
 
         resultSporeValue = CreateResultRow("孢子类型", 0);
-        resultRegionValue = CreateResultRow("播种区域", 1);
-        resultStatusValue = CreateResultRow("成熟状态", 2);
-        resultCommunityValue = CreateResultRow("群落状态", 3);
+        resultSowTimeValue = CreateResultRow("播种时间", 1);
+        resultQualityValue = CreateResultRow("地块品质", 2);
+        resultStatusValue = CreateResultRow("成熟状态", 3);
+        resultCommunityValue = CreateResultRow("群落状态", 4);
+        resultMutationValue = CreateResultRow("变异状态", 5);
 
-        mutationFlash = UIFactory.CreatePanel("MutationFlash", subResult.transform, new Color(1f, 0.86f, 0.40f, 0f));
-        StretchFill(mutationFlash.rectTransform);
-        mutationFlash.raycastTarget = false;
-
-        mutationStatusText = UIFactory.CreateText(
-            "TxtMutationStatus",
+        // 变异嫩芽：优质成熟地块按概率触发，闪烁提示；玩家点击后弹出变异说明。
+        mutationSprout = UIFactory.CreatePanel(
+            "MutationSprout",
             subResult.transform,
-            "变异嫩芽监测：本轮未检测到异常",
-            22,
-            UIPalette.TextDim
+            new Color(1f, 0.86f, 0.40f, 1f)
         );
-        SetAnchored(mutationStatusText.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -430f), new Vector2(900f, 34f));
+        RectTransform sproutRect = mutationSprout.rectTransform;
+        sproutRect.anchorMin = new Vector2(0.5f, 1f);
+        sproutRect.anchorMax = new Vector2(0.5f, 1f);
+        sproutRect.pivot = new Vector2(0.5f, 0.5f);
+        sproutRect.anchoredPosition = new Vector2(0f, -285f);
+        sproutRect.sizeDelta = new Vector2(56f, 56f);
+        MiniGameVisuals.MakeCircle(mutationSprout);
+        Text sproutGlyph = UIFactory.CreateText(
+            "SproutGlyph",
+            mutationSprout.transform,
+            "✦",
+            34,
+            Color.white
+        );
+        UIFactory.Stretch(sproutGlyph.rectTransform);
+        sproutGlyph.fontStyle = FontStyle.Bold;
+        mutationSproutButton = mutationSprout.gameObject.AddComponent<Button>();
+        mutationSproutButton.transition = Selectable.Transition.None;
+        mutationSproutButton.onClick.AddListener(OnMutationSproutClicked);
+        mutationSprout.gameObject.SetActive(false);
 
         Button enterGreenhouse = UIFactory.CreateButton(
             "BtnEnterGreenhouse",
@@ -502,7 +527,7 @@ public class GeneCultivationTaskController : MonoBehaviour
             UIPalette.TextDim,
             TextAnchor.MiddleLeft
         );
-        SetAnchored(label.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(-350f, -310f - rowIndex * 48f), new Vector2(280f, 40f));
+        SetAnchored(label.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(-350f, -430f - rowIndex * 44f), new Vector2(280f, 40f));
 
         Text value = UIFactory.CreateText(
             "TxtResultValue_" + rowIndex,
@@ -512,7 +537,7 @@ public class GeneCultivationTaskController : MonoBehaviour
             UIPalette.TextMain,
             TextAnchor.MiddleLeft
         );
-        SetAnchored(value.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(-60f, -310f - rowIndex * 48f), new Vector2(420f, 40f));
+        SetAnchored(value.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(-60f, -430f - rowIndex * 44f), new Vector2(420f, 40f));
         return value;
     }
 
@@ -525,6 +550,8 @@ public class GeneCultivationTaskController : MonoBehaviour
         {
             sporeDetailText.text = "该孢子位于基因树第 " + spore.layer +
                 " 层，需先成熟上一层才能解锁。";
+            // 锁定节点不可作为样本来源：禁用"调取基因样本"。
+            drawSampleButton.interactable = false;
             return;
         }
 
@@ -707,7 +734,12 @@ public class GeneCultivationTaskController : MonoBehaviour
 
         while (true)
         {
-            if (plot == null || MVPGameSession.IsGenePlotMature(plot))
+            if (plot == null)
+            {
+                break;
+            }
+
+            if (MVPGameSession.IsGenePlotMature(plot))
             {
                 break;
             }
@@ -731,9 +763,24 @@ public class GeneCultivationTaskController : MonoBehaviour
             yield return new WaitForEndOfFrame();
         }
 
-        growthStatusText.text = "群落培育完成";
-        GrowthFinished = true;
-        viewResultButton.gameObject.SetActive(true);
+        // 地块真实成熟 → 显示完成，并解锁当前层基因树下一层（禁止越级，见 TryUnlockGeneTreeNextLevel）。
+        if (plot != null && MVPGameSession.IsGenePlotMature(plot))
+        {
+            growthStatusText.text = "群落培育完成";
+            GrowthFinished = true;
+            viewResultButton.gameObject.SetActive(true);
+
+            SporeType spore = FindSpore(plot.sporeId);
+            if (MVPGameSession.TryUnlockGeneTreeNextLevel(spore.layer))
+            {
+                Debug.Log(
+                    "[GENE] 已解锁基因树下一层 → L" +
+                    MVPGameSession.GeneTreeUnlockedLevel
+                );
+            }
+
+            SaveManager.TrySave();
+        }
     }
 
     // ===== 结果 / 群落面板 =====
@@ -745,26 +792,36 @@ public class GeneCultivationTaskController : MonoBehaviour
         activePlot = plot;
 
         SporeType spore = FindSpore(SelectedSporeId);
-        SeedingRegion region = FindRegion(SelectedRegionId);
+        bool mature = plot != null && MVPGameSession.IsGenePlotMature(plot);
 
         resultSporeValue.text = spore.displayName + "（L" + spore.layer + "）";
-        resultRegionValue.text = region.displayName + "（品质 " + (plot != null ? plot.quality : 0) + "）";
-        resultStatusValue.text = plot != null && MVPGameSession.IsGenePlotMature(plot) ? "已成熟" : "已成熟";
+        resultSowTimeValue.text = plot != null
+            ? FormatUtcTime(plot.sowedAtUtcTicks)
+            : "—";
+        resultQualityValue.text = plot != null ? plot.quality.ToString() : "—";
+        resultStatusValue.text = mature ? "已成熟" : "未成熟";
+        resultCommunityValue.text = plot != null
+            ? CommunityStateText(plot.quality)
+            : "群落未形成";
 
-        resultCommunityValue.text = plot != null ? CommunityStateText(plot.quality) : "群落已形成";
-
-        // 成熟后解锁基因树下一层（一次性）
-        MVPGameSession.TryUnlockGeneTreeNextLevel();
-
-        // 变异彩蛋：优质成熟地块按概率触发（每块地一次）
-        if (plot != null && MVPGameSession.TryTriggerGenePlotMutation(plot))
+        // 变异状态（真实存档数据）：每块地一次，触发后永久记录。
+        mutationSprout.gameObject.SetActive(false);
+        if (plot != null && plot.mutationTriggered)
         {
-            StartCoroutine(MutationFlashRoutine(plot));
+            resultMutationValue.color = UIPalette.Warn;
+            resultMutationValue.text = "✦ 已发生变异（已标记入册）";
         }
         else
         {
-            mutationStatusText.color = UIPalette.TextDim;
-            mutationStatusText.text = "变异嫩芽监测：本轮未检测到异常";
+            resultMutationValue.color = UIPalette.TextDim;
+            resultMutationValue.text = "本轮未检测到变异";
+        }
+
+        // 变异彩蛋：优质成熟地块按概率触发（每块地一次）。
+        if (mature && plot != null &&
+            MVPGameSession.TryTriggerGenePlotMutation(plot))
+        {
+            StartCoroutine(MutationFlashRoutine(plot));
         }
 
         ShowSubPanel(subResult);
@@ -790,31 +847,60 @@ public class GeneCultivationTaskController : MonoBehaviour
         return "群落已形成（初步）";
     }
 
+    /// <summary>变异嫩芽闪烁提示：先闪光提示，之后保持可见，等待玩家点击查看说明。</summary>
     private IEnumerator MutationFlashRoutine(GenePlotData plot)
     {
-        mutationStatusText.color = UIPalette.Warn;
-        mutationStatusText.text = "✦ 检测到变异嫩芽！";
+        resultMutationValue.color = UIPalette.Warn;
+        resultMutationValue.text = "✦ 检测到变异嫩芽！点击嫩芽查看";
 
+        mutationSprout.gameObject.SetActive(true);
         float t = 0f;
-        while (t < 1.4f)
+        while (t < 4f)
         {
             t += Time.deltaTime;
-            float alpha = 0.5f + 0.5f * Mathf.Sin(t * 14f);
-            mutationFlash.color = new Color(1f, 0.86f, 0.40f, Mathf.Clamp01(alpha) * 0.7f);
+            float pulse = 1f + 0.18f * Mathf.Sin(t * 9f);
+            mutationSprout.rectTransform.localScale =
+                new Vector3(pulse, pulse, 1f);
             yield return null;
         }
 
-        mutationFlash.color = new Color(1f, 0.86f, 0.40f, 0f);
+        mutationSprout.rectTransform.localScale = Vector3.one;
+    }
+
+    /// <summary>玩家点击闪光嫩芽 → 弹出"生态变异发现"说明（每块地一次）。</summary>
+    private void OnMutationSproutClicked()
+    {
+        GenePlotData plot = activePlot ?? MVPGameSession.GetGenePlot(SelectedRegionId);
+        if (plot == null)
+        {
+            return;
+        }
+
         MVPGameSession.MarkGenePlotMutationViewed(plot.regionId);
+        mutationSprout.gameObject.SetActive(false);
+        resultMutationValue.color = UIPalette.Warn;
+        resultMutationValue.text = "✦ 已发生变异（已标记入册）";
 
         mutationPopupBody.text =
             "—— 变异嫩芽 · 记录 ——\n\n" +
             "优质地块 [" + plot.regionId + "] 上的 " +
-            (FindSpore(plot.sporeId)).displayName +
+            FindSpore(plot.sporeId).displayName +
             " 群落出现了稀有变异。\n\n" +
             "叶脉泛起荧光，这是完全超出样本库的新性状。\n" +
             "已标记入册，供后续培育研究。\n";
         mutationPopup.gameObject.SetActive(true);
+        SaveManager.TrySave();
+    }
+
+    private static string FormatUtcTime(long ticks)
+    {
+        if (ticks <= 0L)
+        {
+            return "—";
+        }
+
+        return new DateTime(ticks, DateTimeKind.Utc)
+            .ToString("yyyy-MM-dd HH:mm") + " UTC";
     }
 
     private void CloseMutationPopup()

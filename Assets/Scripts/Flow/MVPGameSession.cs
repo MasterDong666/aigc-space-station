@@ -165,10 +165,20 @@ public static class MVPGameSession
         return geneTreeUnlockedLevel >= layer;
     }
 
-    /// <summary>当前层成熟后，一次性解锁下一层。返回是否成功解锁。</summary>
-    public static bool TryUnlockGeneTreeNextLevel()
+    /// <summary>
+    /// 当前层成熟后，一次性解锁下一层。
+    /// 仅当"本次成熟的孢子恰好处于当前已解锁的最前沿层级"时才解锁，
+    /// 从而保证必须逐层完成上一层培育，禁止越级。
+    /// </summary>
+    public static bool TryUnlockGeneTreeNextLevel(int maturedSporeLayer)
     {
         if (geneTreeUnlockedLevel >= GeneCultivationConfig.MaxGeneLayer)
+        {
+            return false;
+        }
+
+        // 必须成熟当前最前沿层级的孢子，才能解锁下一层（禁止越级）。
+        if (maturedSporeLayer != geneTreeUnlockedLevel)
         {
             return false;
         }
@@ -177,19 +187,23 @@ public static class MVPGameSession
         return true;
     }
 
-    /// <summary>播种一块地块（同一区域重复播种则覆盖）。</summary>
+    /// <summary>播种一块地块（同一区域重复播种则覆盖并重置倒计时）。</summary>
     public static void SowGenePlot(
         string regionId,
         string sporeId,
         int quality
     )
     {
+        long now = DateTime.UtcNow.Ticks;
+        long matureAt = now + MatureTicks;
+
         for (int i = 0; i < genePlots.Count; i++)
         {
             if (genePlots[i].regionId == regionId)
             {
                 genePlots[i].sporeId = sporeId;
-                genePlots[i].sowedAtUtcTicks = DateTime.UtcNow.Ticks;
+                genePlots[i].sowedAtUtcTicks = now;
+                genePlots[i].matureAtUtcTicks = matureAt;
                 genePlots[i].quality = Mathf.Clamp(quality, 0, 100);
                 genePlots[i].mutationTriggered = false;
                 genePlots[i].mutationViewed = false;
@@ -201,7 +215,8 @@ public static class MVPGameSession
         {
             regionId = regionId,
             sporeId = sporeId,
-            sowedAtUtcTicks = DateTime.UtcNow.Ticks,
+            sowedAtUtcTicks = now,
+            matureAtUtcTicks = matureAt,
             quality = Mathf.Clamp(quality, 0, 100),
             mutationTriggered = false,
             mutationViewed = false,
@@ -230,14 +245,21 @@ public static class MVPGameSession
         }
 
         long now = DateTime.UtcNow.Ticks;
-        long matureAt = plot.sowedAtUtcTicks + MatureTicks;
+        long matureAt = GetGenePlotMatureAtUtcTicks(plot);
         return now >= matureAt;
     }
 
-    /// <summary>地块成熟的绝对时刻（UTC ticks）。</summary>
+    /// <summary>地块成熟的绝对时刻（UTC ticks）。优先使用存档字段，旧存档回退为 sowedAtUtcTicks + MatureTicks。</summary>
     public static long GetGenePlotMatureAtUtcTicks(GenePlotData plot)
     {
-        return plot == null ? 0L : plot.sowedAtUtcTicks + MatureTicks;
+        if (plot == null)
+        {
+            return 0L;
+        }
+
+        return plot.matureAtUtcTicks > 0L
+            ? plot.matureAtUtcTicks
+            : plot.sowedAtUtcTicks + MatureTicks;
     }
 
     /// <summary>优质成熟地块尝试触发变异彩蛋（每块地一次）。</summary>
@@ -486,6 +508,7 @@ public static class MVPGameSession
                 regionId = plot.regionId,
                 sporeId = plot.sporeId,
                 sowedAtUtcTicks = plot.sowedAtUtcTicks,
+                matureAtUtcTicks = plot.matureAtUtcTicks,
                 quality = plot.quality,
                 mutationTriggered = plot.mutationTriggered,
                 mutationViewed = plot.mutationViewed,
@@ -567,6 +590,8 @@ public static class MVPGameSession
                     regionId = plot.regionId ?? string.Empty,
                     sporeId = plot.sporeId ?? string.Empty,
                     sowedAtUtcTicks = plot.sowedAtUtcTicks,
+                    // 旧存档无 matureAtUtcTicks（默认 0），由 GetGenePlotMatureAtUtcTicks 回退。
+                    matureAtUtcTicks = plot.matureAtUtcTicks,
                     quality = Mathf.Clamp(plot.quality, 0, 100),
                     mutationTriggered = plot.mutationTriggered,
                     mutationViewed = plot.mutationViewed,

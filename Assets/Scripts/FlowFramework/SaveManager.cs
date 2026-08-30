@@ -48,6 +48,7 @@ public class GenePlotData
     public string regionId;
     public string sporeId;
     public long sowedAtUtcTicks;
+    public long matureAtUtcTicks;
     public int quality;
     public bool mutationTriggered;
     public bool mutationViewed;
