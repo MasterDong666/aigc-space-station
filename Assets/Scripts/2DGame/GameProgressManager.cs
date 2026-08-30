@@ -68,6 +68,12 @@ public class GameProgressManager : MonoBehaviour
         return MVPGameSession.TryAwardUniqueProgress(rewardId, reward);
     }
 
+    /// <summary>扣除少量修复进度（错误操作惩罚），下限 0。</summary>
+    public void DeductProgress(int amount)
+    {
+        MVPGameSession.DeductProgress(amount);
+    }
+
     private void HandleProgressChanged(int progress)
     {
         ProgressChanged?.Invoke(progress);

@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -22,6 +23,7 @@ public class MainHubUI : MonoBehaviour
 
     private Text progressValueText;
     private Image progressFill;
+    private Image redDot;
     private Text identityText;
     private Text taskHeaderText;
     private Button orbitButton;
@@ -105,6 +107,22 @@ public class MainHubUI : MonoBehaviour
         );
         SetAnchored(progressFill.transform.parent.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -134f), new Vector2(600f, 20f));
 
+        // 结局解锁红点（进度达到 50 后出现并脉动）
+        redDot = UIFactory.CreatePanel(
+            "RedDot_EndingUnlocked",
+            card.transform,
+            new Color(0.98f, 0.27f, 0.27f, 1f)
+        );
+        RectTransform redDotRect = redDot.rectTransform;
+        redDotRect.anchorMin = new Vector2(0.5f, 1f);
+        redDotRect.anchorMax = new Vector2(0.5f, 1f);
+        redDotRect.pivot = new Vector2(0.5f, 0.5f);
+        redDotRect.anchoredPosition = new Vector2(330f, -78f);
+        redDotRect.sizeDelta = new Vector2(22f, 22f);
+        MiniGameVisuals.MakeCircle(redDot);
+        redDot.gameObject.SetActive(false);
+        StartCoroutine(RedDotPulseRoutine());
+
         // 今日任务
         taskHeaderText = UIFactory.CreateText(
             "TxtTaskHeader",
@@ -169,7 +187,37 @@ public class MainHubUI : MonoBehaviour
             reserved.interactable = false;
         }
 
+        // 独立结局入口（进度达到 50 后解锁）
+        finalEndingButton = UIFactory.CreateButton(
+            "BtnFinalEnding",
+            transform,
+            "最终结局  ·  修复进度未达标",
+            new Vector2(520f, 70f),
+            new Color(0.55f, 0.15f, 0.15f, 1f),
+            28
+        );
+        SetAnchored(finalEndingButton.GetComponent<RectTransform>(), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 150f), new Vector2(520f, 70f));
+        finalEndingButtonLabel = finalEndingButton.GetComponentInChildren<Text>();
+        finalEndingButton.onClick.AddListener(() => FinalEndingClicked?.Invoke());
+        finalEndingButton.interactable = false;
+
         MiniGameVisuals.PolishHierarchy(transform, MiniGameThemeId.Orbit);
+    }
+
+    /// <summary>结局解锁红点脉动：仅在红点激活时放大缩小。</summary>
+    private IEnumerator RedDotPulseRoutine()
+    {
+        while (true)
+        {
+            if (redDot != null && redDot.gameObject.activeSelf)
+            {
+                float pulse = 1f + 0.14f * Mathf.Sin(Time.time * 5f);
+                redDot.rectTransform.localScale =
+                    new Vector3(pulse, pulse, 1f);
+            }
+
+            yield return null;
+        }
     }
 
     public void Show()
@@ -195,6 +243,21 @@ public class MainHubUI : MonoBehaviour
         int value = progress.EarthProgress;
         progressValueText.text = value + " / " + MVPGameSession.EndingProgress;
         progressFill.fillAmount = value / (float)MVPGameSession.EndingProgress;
+
+        // 结局解锁红点 + 独立结局按钮（进度达到 50 后出现/可用）
+        bool endingUnlocked = value >= MVPGameSession.EndingProgress;
+        if (redDot != null)
+        {
+            redDot.gameObject.SetActive(endingUnlocked);
+        }
+
+        if (finalEndingButton != null)
+        {
+            finalEndingButton.interactable = endingUnlocked;
+            finalEndingButtonLabel.text = endingUnlocked
+                ? "最终结局  ·  已解锁  ›"
+                : "最终结局  ·  修复进度未达标";
+        }
 
         if (identityText != null)
         {

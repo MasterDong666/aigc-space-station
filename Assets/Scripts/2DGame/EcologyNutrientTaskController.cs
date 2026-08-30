@@ -126,6 +126,9 @@ public class EcologyNutrientTaskController : MonoBehaviour
         Report,
     }
 
+    /// <summary>错误浓度每次扣除的修复进度（可配置，下限由权威进度系统钳制为 0）。</summary>
+    private const int WrongOperationPenalty = 1;
+
     /// <summary>点击返回按钮时触发。</summary>
     public event Action ExitRequested;
 
@@ -535,29 +538,37 @@ public class EcologyNutrientTaskController : MonoBehaviour
         {
             SelectedTierId = tier.id;
             MistakeCount++;
-            // 预留：连续错误多次时扣除少量修复效率的接口（本阶段不实际扣 EarthProgress）
             ApplyEfficiencyPenalty();
 
             mapStatusText.color = UIPalette.Warn;
-            mapStatusText.text = "当前浓度与地块污染情况不匹配。";
+            mapStatusText.text = "浓度不匹配（修复进度 -" + WrongOperationPenalty + "）。错误操作不会记为成功，请重试。";
             resetTierButton.gameObject.SetActive(true);
         }
     }
 
     /// <summary>
-    /// 预留接口：同一轮连续选错浓度多次时，未来在这里扣除少量修复效率。
-    /// 本阶段只记录次数，不永久扣除 EarthProgress，避免影响主线测试。
+    /// 错误浓度反馈：选择明显错误的浓度时，通过权威进度系统扣除少量修复进度
+    /// （WrongOperationPenalty，默认 1，可配置）。下限为 0。
     /// </summary>
     private void ApplyEfficiencyPenalty()
     {
-        // 未来实现：如 if (MistakeCount >= 3) GameProgressManager.Instance.DeductEfficiency(1);
+        GameProgressManager progress = GameProgressManager.Instance;
+        if (progress != null)
+        {
+            progress.DeductProgress(WrongOperationPenalty);
+        }
     }
 
     private void OnResetTierClicked()
     {
+        // 重置浓度：清空当前选择，允许重新选择污染地块与浓度档位。
+        SelectedZoneId = null;
         SelectedTierId = null;
-        mapStatusText.text = string.Empty;
+        mapStatusText.color = UIPalette.TextDim;
+        mapStatusText.text = "已重置，请重新选择污染地块与浓度。";
         resetTierButton.gameObject.SetActive(false);
+        tierButtonsRoot.SetActive(false);
+        tierPromptText.gameObject.SetActive(false);
     }
 
     // ===== 规划阶段 =====

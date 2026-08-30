@@ -1,12 +1,15 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 /// <summary>
 /// 任务3【基因孢子无人机播撒培育】主流程控制器。
-/// 阶段：诺亚基因库 → 播种区域 → 无人机播种 → 培育 → 查看结果 →（进入太空大棚）。
-/// 结构上按阶段拆分 SubPanel，方便未来替换基因树逐级解锁与真实时长系统。
+/// 阶段：诺亚基因库（分层基因树）→ 播种区域（拖拽框选）→ 无人机群播种
+/// → 培育（真实 72 小时倒计时，可 Debug 跳过）→ 群落面板 →（进入太空大棚）。
+/// 基因树逐层解锁、地块成熟状态、变异彩蛋均通过 MVPGameSession 持久化。
 /// </summary>
 public class GeneCultivationTaskController : MonoBehaviour
 {
@@ -42,21 +45,49 @@ public class GeneCultivationTaskController : MonoBehaviour
 
     private Text seedingStatusText;
     private Button releaseDronesButton;
-    private readonly Button[] regionButtons = new Button[GeneCultivationConfig.Regions.Length];
+
+    private RectTransform selectionRect;
+    private readonly List<RegionCell> regionCells = new();
+    private bool dragActive;
+    private Vector2 dragBeginLocal;
     private int selectedRegionIndex = -1;
 
     private Text sowingStatusText;
-    private RectTransform[] droneIcons;
+    private readonly List<RectTransform> droneIcons = new();
+    private const int DroneCount = 12;
 
     private Text growthStatusText;
     private Button viewResultButton;
+    private GenePlotData activePlot;
 
     private Text resultSporeValue;
     private Text resultRegionValue;
     private Text resultStatusValue;
     private Text resultCommunityValue;
+    private Image mutationFlash;
+    private Text mutationStatusText;
+    private Image mutationPopup;
+    private Text mutationPopupBody;
 
     private Coroutine flowRoutine;
+
+    /// <summary>编辑器/测试用：把当前地块的播种时间回拨到已成熟（不污染正式逻辑）。</summary>
+    public void DebugSkipTimerToMature()
+    {
+        if (string.IsNullOrEmpty(SelectedRegionId))
+        {
+            return;
+        }
+
+        GenePlotData plot = MVPGameSession.GetGenePlot(SelectedRegionId);
+        if (plot == null)
+        {
+            return;
+        }
+
+        plot.sowedAtUtcTicks =
+            (DateTime.UtcNow - TimeSpan.FromHours(73f)).Ticks;
+    }
 
     public void BuildUI()
     {
@@ -70,6 +101,7 @@ public class GeneCultivationTaskController : MonoBehaviour
         BuildSowingSubPanel();
         BuildGrowthSubPanel();
         BuildResultSubPanel();
+        BuildMutationPopup();
 
         MiniGameVisuals.PolishHierarchy(transform, MiniGameThemeId.Gene);
 
@@ -86,12 +118,15 @@ public class GeneCultivationTaskController : MonoBehaviour
         SelectedRegionId = null;
         GrowthFinished = false;
         selectedRegionIndex = -1;
+        activePlot = null;
 
-        sporeDetailText.text = "请选择孢子类型";
+        sporeDetailText.text = "请选择孢子类型（需逐层解锁基因树）";
         drawSampleButton.interactable = false;
         seedingStatusText.text = string.Empty;
         releaseDronesButton.gameObject.SetActive(false);
         viewResultButton.gameObject.SetActive(false);
+        dragActive = false;
+        HideSelectionRect();
         RestoreRegionColors();
 
         ShowSubPanel(subLibrary);
@@ -131,25 +166,39 @@ public class GeneCultivationTaskController : MonoBehaviour
             subLibrary.transform,
             new Vector2(900f, 180f),
             MiniGameThemeId.Gene,
-            "诺亚基因样本库"
+            "诺亚基因样本库 · 分层基因树"
         );
         SetAnchored(librarySlot.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -160f), new Vector2(900f, 180f));
 
-        // 孢子选择（线性解锁：仅微生物可用）
+        Text treeHint = UIFactory.CreateText(
+            "TxtGeneTreeHint",
+            subLibrary.transform,
+            "已解锁层级 L" + MVPGameSession.GeneTreeUnlockedLevel +
+            "（成熟当前层后自动解锁下一层）",
+            22,
+            UIPalette.TextDim
+        );
+        SetAnchored(treeHint.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -238f), new Vector2(900f, 34f));
+
         SporeType[] spores = GeneCultivationConfig.Spores;
         for (int i = 0; i < spores.Length; i++)
         {
             SporeType spore = spores[i];
+            bool selectable = GeneCultivationConfig.IsSporeSelectable(spore);
+            string label = selectable
+                ? "L" + spore.layer + "  ·  可用样本  ·  " + spore.displayName
+                : "L" + spore.layer + "  ·  未解锁  ·  " + spore.displayName;
+
             Button btn = UIFactory.CreateButton(
                 "BtnSpore_" + spore.displayName,
                 subLibrary.transform,
-                spore.unlocked ? "可用样本  ·  " + spore.displayName : "未授权  ·  " + spore.displayName,
-                new Vector2(300f, 84f),
-                spore.unlocked ? UIPalette.PanelLight : UIPalette.Locked,
-                28
+                label,
+                new Vector2(300f, 92f),
+                selectable ? UIPalette.PanelLight : UIPalette.Locked,
+                26
             );
-            SetAnchored(btn.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2((i - 1) * 330f, -280f), new Vector2(300f, 84f));
-            btn.interactable = spore.unlocked;
+            SetAnchored(btn.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2((i - 1) * 330f, -285f), new Vector2(300f, 92f));
+            btn.interactable = selectable;
 
             int index = i;
             btn.onClick.AddListener(() => OnSporeClicked(index));
@@ -162,7 +211,7 @@ public class GeneCultivationTaskController : MonoBehaviour
             26,
             UIPalette.TextDim
         );
-        SetAnchored(sporeDetailText.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -400f), new Vector2(1000f, 150f));
+        SetAnchored(sporeDetailText.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -410f), new Vector2(1000f, 150f));
 
         drawSampleButton = UIFactory.CreateButton(
             "BtnDrawSample",
@@ -185,29 +234,69 @@ public class GeneCultivationTaskController : MonoBehaviour
         SetAnchored(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -70f), new Vector2(900f, 70f));
         MiniGameVisuals.AddStepRail(subSeeding.transform, MiniGameThemeId.Gene, new[] { "基因样本", "播种区域", "无人机群", "快速培育", "结果" }, 1);
 
-        Text hint = UIFactory.CreateText("TxtSeedingHint", subSeeding.transform, "请选择适宜播种的绿色区域", 26, UIPalette.TextDim);
-        SetAnchored(hint.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -185f), new Vector2(800f, 40f));
+        Text hint = UIFactory.CreateText("TxtSeedingHint", subSeeding.transform, "在地图上按住并拖拽，框选一块包含绿色适宜地块的播种区", 26, UIPalette.TextDim);
+        SetAnchored(hint.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -160f), new Vector2(1000f, 40f));
 
+        // 播种拖拽板
+        Image board = UIFactory.CreatePanel("SeedingBoard", subSeeding.transform, new Color(0.02f, 0.05f, 0.12f, 0.9f));
+        SetAnchored(board.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -255f), new Vector2(920f, 380f));
+        MiniGameVisuals.Round(board);
+        board.raycastTarget = true;
+
+        RegionDragHandler dragHandler = board.gameObject.AddComponent<RegionDragHandler>();
+        dragHandler.owner = this;
+
+        // 选区高亮矩形
+        Image selImage = UIFactory.CreatePanel("SelectionRect", board.transform, new Color(0.36f, 0.85f, 0.60f, 0.35f));
+        selImage.raycastTarget = false;
+        selectionRect = selImage.rectTransform;
+        selectionRect.anchorMin = new Vector2(0.5f, 1f);
+        selectionRect.anchorMax = new Vector2(0.5f, 1f);
+        selectionRect.pivot = new Vector2(0.5f, 1f);
+        selectionRect.sizeDelta = Vector2.zero;
+        HideSelectionRect();
+
+        // 地块格（3 列 x 2 行），存 board 局部坐标用于矩形相交判定
         SeedingRegion[] regions = GeneCultivationConfig.Regions;
         for (int i = 0; i < regions.Length; i++)
         {
             SeedingRegion region = regions[i];
             int row = i / 3;
             int col = i % 3;
+            float cx = (col - 1) * 300f;
+            float cy = (row == 0 ? 1f : -1f) * 110f;
 
-            Button btn = UIFactory.CreateButton(
-                "BtnRegion_" + region.displayName,
-                subSeeding.transform,
-                (region.suitable ? "✓  " : "×  ") + region.displayName,
-                new Vector2(280f, 100f),
-                region.suitable ? UIPalette.Suitable : UIPalette.Unsuitable,
-                26
+            Image cell = UIFactory.CreatePanel(
+                "CellRegion_" + region.displayName,
+                board.transform,
+                region.suitable ? UIPalette.Suitable : UIPalette.Unsuitable
             );
-            SetAnchored(btn.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2((col - 1) * 310f, -245f - row * 120f), new Vector2(280f, 100f));
+            RectTransform cellRect = cell.rectTransform;
+            cellRect.anchorMin = new Vector2(0.5f, 1f);
+            cellRect.anchorMax = new Vector2(0.5f, 1f);
+            cellRect.pivot = new Vector2(0.5f, 1f);
+            cellRect.sizeDelta = new Vector2(280f, 140f);
+            cellRect.anchoredPosition = new Vector2(cx, cy);
+            MiniGameVisuals.Round(cell);
 
-            regionButtons[i] = btn;
-            int index = i;
-            btn.onClick.AddListener(() => OnRegionClicked(index));
+            Text cellLabel = UIFactory.CreateText(
+                "CellText",
+                cell.transform,
+                (region.suitable ? "✓  " : "×  ") + region.displayName,
+                24,
+                Color.white
+            );
+            UIFactory.Stretch(cellLabel.rectTransform);
+
+            regionCells.Add(new RegionCell
+            {
+                index = i,
+                region = region,
+                rect = cellRect,
+                image = cell,
+                center = new Vector2(cx, cy),
+                half = new Vector2(140f, 70f),
+            });
         }
 
         seedingStatusText = UIFactory.CreateText(
@@ -217,7 +306,7 @@ public class GeneCultivationTaskController : MonoBehaviour
             28,
             UIPalette.Warn
         );
-        SetAnchored(seedingStatusText.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -520f), new Vector2(1000f, 50f));
+        SetAnchored(seedingStatusText.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -485f), new Vector2(1000f, 50f));
 
         releaseDronesButton = UIFactory.CreateButton(
             "BtnReleaseDrones",
@@ -249,18 +338,17 @@ public class GeneCultivationTaskController : MonoBehaviour
         );
         SetAnchored(slot.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -180f), new Vector2(900f, 300f));
 
-        // 简易"无人机"图标（占位动画）
-        droneIcons = new RectTransform[3];
-        for (int i = 0; i < droneIcons.Length; i++)
+        // 轻量"无人机群"光点（有限数量，运行时程序化生成）
+        for (int i = 0; i < DroneCount; i++)
         {
             Image drone = UIFactory.CreatePanel("Drone" + (i + 1), slot.transform, UIPalette.Accent);
             drone.rectTransform.anchorMin = new Vector2(0f, 1f);
             drone.rectTransform.anchorMax = new Vector2(0f, 1f);
             drone.rectTransform.pivot = new Vector2(0.5f, 0.5f);
-            drone.rectTransform.sizeDelta = new Vector2(22f, 22f);
+            drone.rectTransform.sizeDelta = new Vector2(12f, 12f);
             MiniGameVisuals.MakeCircle(drone);
-            drone.rectTransform.anchoredPosition = new Vector2(40f + i * 30f, -30f - i * 20f);
-            droneIcons[i] = drone.rectTransform;
+            drone.rectTransform.anchoredPosition = new Vector2(40f, -40f);
+            droneIcons.Add(drone.rectTransform);
         }
 
         sowingStatusText = UIFactory.CreateText(
@@ -291,10 +379,10 @@ public class GeneCultivationTaskController : MonoBehaviour
             "TxtGrowthStatus",
             growthCard.transform,
             string.Empty,
-            44,
+            40,
             UIPalette.Accent
         );
-        SetAnchored(growthStatusText.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -10f), new Vector2(820f, 90f));
+        SetAnchored(growthStatusText.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -10f), new Vector2(860f, 90f));
 
         viewResultButton = UIFactory.CreateButton(
             "BtnViewResult",
@@ -313,33 +401,36 @@ public class GeneCultivationTaskController : MonoBehaviour
     {
         subResult = CreateSubPanel("SubResult");
 
-        Text title = UIFactory.CreateText("TxtResultTitle", subResult.transform, "培育结果", 48, UIPalette.TextMain);
+        Text title = UIFactory.CreateText("TxtResultTitle", subResult.transform, "培育结果 · 群落面板", 48, UIPalette.TextMain);
         SetAnchored(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -70f), new Vector2(900f, 70f));
         MiniGameVisuals.AddStepRail(subResult.transform, MiniGameThemeId.Gene, new[] { "基因样本", "播种区域", "无人机群", "快速培育", "结果" }, 4);
 
         GameObject slot = MiniGameVisuals.CreateArtSlot(
             "MediaSlot_CultivatedPlants",
             subResult.transform,
-            new Vector2(760f, 240f),
+            new Vector2(760f, 220f),
             MiniGameThemeId.Gene,
             "新生群落培育舱"
         );
-        SetAnchored(slot.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -185f), new Vector2(760f, 240f));
+        SetAnchored(slot.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -175f), new Vector2(760f, 220f));
 
         resultSporeValue = CreateResultRow("孢子类型", 0);
         resultRegionValue = CreateResultRow("播种区域", 1);
-        resultStatusValue = CreateResultRow("培育成功", 2);
+        resultStatusValue = CreateResultRow("成熟状态", 2);
         resultCommunityValue = CreateResultRow("群落状态", 3);
 
-        // 预留：变异嫩芽系统（本阶段仅结构占位，正式随机系统待接入）
-        Text mutation = UIFactory.CreateText(
-            "TxtMutationPlaceholder",
+        mutationFlash = UIFactory.CreatePanel("MutationFlash", subResult.transform, new Color(1f, 0.86f, 0.40f, 0f));
+        StretchFill(mutationFlash.rectTransform);
+        mutationFlash.raycastTarget = false;
+
+        mutationStatusText = UIFactory.CreateText(
+            "TxtMutationStatus",
             subResult.transform,
             "变异嫩芽监测：本轮未检测到异常",
             22,
             UIPalette.TextDim
         );
-        SetAnchored(mutation.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -640f), new Vector2(900f, 34f));
+        SetAnchored(mutationStatusText.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -430f), new Vector2(900f, 34f));
 
         Button enterGreenhouse = UIFactory.CreateButton(
             "BtnEnterGreenhouse",
@@ -353,6 +444,54 @@ public class GeneCultivationTaskController : MonoBehaviour
         enterGreenhouse.onClick.AddListener(() => EnterGreenhouse?.Invoke());
     }
 
+    private void BuildMutationPopup()
+    {
+        mutationPopup = UIFactory.CreatePanel("MutationPopup", transform, new Color(0f, 0f, 0f, 0.74f));
+        StretchFill(mutationPopup.rectTransform);
+
+        Image card = MiniGameVisuals.CreateCard(
+            "MutationCard",
+            mutationPopup.transform,
+            new Vector2(840f, 440f),
+            MiniGameThemeId.Gene
+        );
+        SetAnchored(card.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 0f), new Vector2(840f, 440f));
+
+        Text eyebrow = UIFactory.CreateText(
+            "MutationEyebrow",
+            card.transform,
+            "彩蛋  ·  变异嫩芽",
+            20,
+            UIPalette.Warn
+        );
+        eyebrow.fontStyle = FontStyle.Bold;
+        SetAnchored(eyebrow.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -28f), new Vector2(760f, 34f));
+
+        mutationPopupBody = UIFactory.CreateText(
+            "MutationBody",
+            card.transform,
+            "",
+            26,
+            UIPalette.TextMain,
+            TextAnchor.MiddleLeft
+        );
+        mutationPopupBody.horizontalOverflow = HorizontalWrapMode.Wrap;
+        SetAnchored(mutationPopupBody.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -72f), new Vector2(740f, 250f));
+
+        Button confirm = UIFactory.CreateButton(
+            "MutationConfirm",
+            card.transform,
+            "标记入册",
+            new Vector2(240f, 72f),
+            UIPalette.Ok,
+            28
+        );
+        SetAnchored(confirm.GetComponent<RectTransform>(), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 30f), new Vector2(240f, 72f));
+        confirm.onClick.AddListener(CloseMutationPopup);
+
+        mutationPopup.gameObject.SetActive(false);
+    }
+
     private Text CreateResultRow(string labelText, int rowIndex)
     {
         Text label = UIFactory.CreateText(
@@ -363,7 +502,7 @@ public class GeneCultivationTaskController : MonoBehaviour
             UIPalette.TextDim,
             TextAnchor.MiddleLeft
         );
-        SetAnchored(label.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(-350f, -445f - rowIndex * 48f), new Vector2(280f, 40f));
+        SetAnchored(label.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(-350f, -310f - rowIndex * 48f), new Vector2(280f, 40f));
 
         Text value = UIFactory.CreateText(
             "TxtResultValue_" + rowIndex,
@@ -373,21 +512,25 @@ public class GeneCultivationTaskController : MonoBehaviour
             UIPalette.TextMain,
             TextAnchor.MiddleLeft
         );
-        SetAnchored(value.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(-60f, -445f - rowIndex * 48f), new Vector2(420f, 40f));
+        SetAnchored(value.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(-60f, -310f - rowIndex * 48f), new Vector2(420f, 40f));
         return value;
     }
+
+    // ===== 基因库：分层基因树 =====
 
     private void OnSporeClicked(int index)
     {
         SporeType spore = GeneCultivationConfig.Spores[index];
-        if (!spore.unlocked)
+        if (!GeneCultivationConfig.IsSporeSelectable(spore))
         {
+            sporeDetailText.text = "该孢子位于基因树第 " + spore.layer +
+                " 层，需先成熟上一层才能解锁。";
             return;
         }
 
         SelectedSporeId = spore.id;
         sporeDetailText.text =
-            "名称：" + spore.displayName + "\n" +
+            "名称：" + spore.displayName + "（L" + spore.layer + "）\n" +
             "说明：" + spore.description + "\n" +
             "状态：已解锁";
         drawSampleButton.interactable = true;
@@ -399,30 +542,102 @@ public class GeneCultivationTaskController : MonoBehaviour
         ShowSubPanel(subSeeding);
     }
 
-    private void OnRegionClicked(int index)
-    {
-        SeedingRegion region = GeneCultivationConfig.Regions[index];
+    // ===== 播种区域：拖拽框选 =====
 
-        if (!region.suitable)
+    private void OnRegionDragBegin(PointerEventData eventData)
+    {
+        dragActive = true;
+        RectTransformUtility.ScreenPointToLocalPointInRectangle(
+            selectionRect.parent as RectTransform,
+            eventData.position,
+            eventData.pressEventCamera,
+            out dragBeginLocal
+        );
+        UpdateSelectionRect(dragBeginLocal, dragBeginLocal);
+    }
+
+    private void OnRegionDrag(PointerEventData eventData)
+    {
+        if (!dragActive)
         {
-            seedingStatusText.color = UIPalette.Warn;
-            seedingStatusText.text = "该区域当前不适宜进行基因播种。";
-            releaseDronesButton.gameObject.SetActive(false);
             return;
         }
 
-        RestoreRegionColors();
-        selectedRegionIndex = index;
-        SelectedRegionId = region.id;
-
-        // 高亮选中区域
-        Image image = regionButtons[index].GetComponent<Image>();
-        image.color = UIPalette.Accent;
-
-        seedingStatusText.color = UIPalette.Ok;
-        seedingStatusText.text = "已选择：" + region.displayName + "（适宜播种）";
-        releaseDronesButton.gameObject.SetActive(true);
+        RectTransformUtility.ScreenPointToLocalPointInRectangle(
+            selectionRect.parent as RectTransform,
+            eventData.position,
+            eventData.pressEventCamera,
+            out Vector2 current
+        );
+        UpdateSelectionRect(dragBeginLocal, current);
     }
+
+    private void OnRegionDragEnd(PointerEventData eventData)
+    {
+        if (!dragActive)
+        {
+            return;
+        }
+
+        dragActive = false;
+        Vector2 selCenter = selectionRect.anchoredPosition;
+        Vector2 selHalf = selectionRect.sizeDelta * 0.5f;
+
+        int firstSuitable = -1;
+        for (int i = 0; i < regionCells.Count; i++)
+        {
+            RegionCell cell = regionCells[i];
+            bool overlap =
+                Mathf.Abs(cell.center.x - selCenter.x) < (cell.half.x + selHalf.x) &&
+                Mathf.Abs(cell.center.y - selCenter.y) < (cell.half.y + selHalf.y);
+
+            if (overlap)
+            {
+                cell.image.color = UIPalette.Accent;
+                if (cell.region.suitable && firstSuitable < 0)
+                {
+                    firstSuitable = cell.index;
+                }
+            }
+            else
+            {
+                cell.image.color = cell.region.suitable ? UIPalette.Suitable : UIPalette.Unsuitable;
+            }
+        }
+
+        if (firstSuitable >= 0)
+        {
+            selectedRegionIndex = firstSuitable;
+            SelectedRegionId = regionCells[firstSuitable].region.id;
+            seedingStatusText.color = UIPalette.Ok;
+            seedingStatusText.text = "已框选播种区：" + regionCells[firstSuitable].region.displayName;
+            releaseDronesButton.gameObject.SetActive(true);
+        }
+        else
+        {
+            SelectedRegionId = null;
+            releaseDronesButton.gameObject.SetActive(false);
+            seedingStatusText.color = UIPalette.Warn;
+            seedingStatusText.text = "框选区域未包含适宜地块，请重新框选。";
+        }
+
+        HideSelectionRect();
+    }
+
+    private void UpdateSelectionRect(Vector2 a, Vector2 b)
+    {
+        selectionRect.anchoredPosition = (a + b) * 0.5f;
+        selectionRect.sizeDelta = new Vector2(Mathf.Abs(a.x - b.x), Mathf.Abs(a.y - b.y));
+        selectionRect.gameObject.SetActive(true);
+    }
+
+    private void HideSelectionRect()
+    {
+        selectionRect.sizeDelta = Vector2.zero;
+        selectionRect.gameObject.SetActive(false);
+    }
+
+    // ===== 无人机群播种 =====
 
     private void OnReleaseDronesClicked()
     {
@@ -433,35 +648,36 @@ public class GeneCultivationTaskController : MonoBehaviour
 
     private IEnumerator DroneSowingRoutine()
     {
-        // 复位无人机图标
-        for (int i = 0; i < droneIcons.Length; i++)
+        for (int i = 0; i < droneIcons.Count; i++)
         {
-            droneIcons[i].anchoredPosition = new Vector2(40f + i * 30f, -30f - i * 20f);
+            droneIcons[i].anchoredPosition = new Vector2(50f + (i % 4) * 26f, -40f - (i / 4) * 26f);
         }
 
         sowingStatusText.text = "无人机群释放中……";
         float elapsed = 0f;
-        float flyDuration = 2.2f;
+        float flyDuration = 2.4f;
         while (elapsed < flyDuration)
         {
             elapsed += Time.deltaTime;
             float t = Mathf.Clamp01(elapsed / flyDuration);
-            for (int i = 0; i < droneIcons.Length; i++)
+            for (int i = 0; i < droneIcons.Count; i++)
             {
-                float local = Mathf.Clamp01(t * 1.4f - i * 0.25f);
-                droneIcons[i].anchoredPosition = Vector2.Lerp(
-                    new Vector2(40f + i * 30f, -30f - i * 20f),
-                    new Vector2(860f - i * 70f, -270f + i * 40f),
-                    local
-                );
+                float local = Mathf.Clamp01(t * 1.5f - i * 0.10f);
+                Vector2 from = new Vector2(50f + (i % 4) * 26f, -40f - (i / 4) * 26f);
+                Vector2 to = new Vector2(860f - (i % 4) * 26f, -270f + (i / 4) * 26f);
+                droneIcons[i].anchoredPosition = Vector2.Lerp(from, to, local);
             }
             yield return null;
         }
 
         sowingStatusText.text = "无人机群已覆盖选定区域";
-        yield return new WaitForSeconds(0.8f);
 
-        sowingStatusText.text = "播种完成";
+        // 播种落库（真实 72h 计时起点）
+        int quality = ComputePlotQuality();
+        MVPGameSession.SowGenePlot(SelectedRegionId, SelectedSporeId, quality);
+
+        yield return new WaitForSeconds(0.8f);
+        sowingStatusText.text = "播种完成，进入培育";
         yield return new WaitForSeconds(0.8f);
 
         CurrentPhase = Phase.Growth;
@@ -469,15 +685,50 @@ public class GeneCultivationTaskController : MonoBehaviour
         flowRoutine = StartCoroutine(GrowthRoutine());
     }
 
+    private int ComputePlotQuality()
+    {
+        SeedingRegion region = FindRegion(SelectedRegionId);
+        int quality = 40;
+        if (region.suitable)
+        {
+            quality += GeneCultivationConfig.QualitySuitableBonus;
+        }
+
+        quality += UnityEngine.Random.Range(0, 21);
+        return Mathf.Clamp(quality, 0, 100);
+    }
+
+    // ===== 培育：真实 72h 倒计时 =====
+
     private IEnumerator GrowthRoutine()
     {
-        GrowthStage[] stages = GeneCultivationConfig.GrowthStages;
+        GenePlotData plot = MVPGameSession.GetGenePlot(SelectedRegionId);
+        activePlot = plot;
 
-        for (int i = 0; i < stages.Length - 1; i++)
+        while (true)
         {
-            GrowthStage stage = stages[i];
-            growthStatusText.text = "培育状态：" + stage.hoursRemaining.ToString("0") + " 小时（" + stage.displayName + "）";
-            yield return new WaitForSeconds(1.2f);
+            if (plot == null || MVPGameSession.IsGenePlotMature(plot))
+            {
+                break;
+            }
+
+            long now = DateTime.UtcNow.Ticks;
+            long remain = MVPGameSession.GetGenePlotMatureAtUtcTicks(plot) - now;
+            if (remain <= 0)
+            {
+                break;
+            }
+
+            long totalSec = remain / TimeSpan.TicksPerSecond;
+            long hours = totalSec / 3600;
+            long minutes = (totalSec % 3600) / 60;
+            long seconds = totalSec % 60;
+            growthStatusText.text =
+                "培育剩余  " + hours.ToString("0") + " 小时 " +
+                minutes.ToString("00") + " 分 " +
+                seconds.ToString("00") + " 秒";
+
+            yield return new WaitForEndOfFrame();
         }
 
         growthStatusText.text = "群落培育完成";
@@ -485,19 +736,90 @@ public class GeneCultivationTaskController : MonoBehaviour
         viewResultButton.gameObject.SetActive(true);
     }
 
+    // ===== 结果 / 群落面板 =====
+
     private void OnViewResultClicked()
     {
         CurrentPhase = Phase.Result;
+        GenePlotData plot = MVPGameSession.GetGenePlot(SelectedRegionId);
+        activePlot = plot;
 
         SporeType spore = FindSpore(SelectedSporeId);
         SeedingRegion region = FindRegion(SelectedRegionId);
 
-        resultSporeValue.text = spore.displayName;
-        resultRegionValue.text = region.displayName;
-        resultStatusValue.text = "是";
-        resultCommunityValue.text = "群落已形成（旺盛）";
+        resultSporeValue.text = spore.displayName + "（L" + spore.layer + "）";
+        resultRegionValue.text = region.displayName + "（品质 " + (plot != null ? plot.quality : 0) + "）";
+        resultStatusValue.text = plot != null && MVPGameSession.IsGenePlotMature(plot) ? "已成熟" : "已成熟";
+
+        resultCommunityValue.text = plot != null ? CommunityStateText(plot.quality) : "群落已形成";
+
+        // 成熟后解锁基因树下一层（一次性）
+        MVPGameSession.TryUnlockGeneTreeNextLevel();
+
+        // 变异彩蛋：优质成熟地块按概率触发（每块地一次）
+        if (plot != null && MVPGameSession.TryTriggerGenePlotMutation(plot))
+        {
+            StartCoroutine(MutationFlashRoutine(plot));
+        }
+        else
+        {
+            mutationStatusText.color = UIPalette.TextDim;
+            mutationStatusText.text = "变异嫩芽监测：本轮未检测到异常";
+        }
 
         ShowSubPanel(subResult);
+    }
+
+    private string CommunityStateText(int quality)
+    {
+        if (quality >= 80)
+        {
+            return "群落已形成（蓬勃）";
+        }
+
+        if (quality >= 60)
+        {
+            return "群落已形成（旺盛）";
+        }
+
+        if (quality >= 40)
+        {
+            return "群落已形成（稳定）";
+        }
+
+        return "群落已形成（初步）";
+    }
+
+    private IEnumerator MutationFlashRoutine(GenePlotData plot)
+    {
+        mutationStatusText.color = UIPalette.Warn;
+        mutationStatusText.text = "✦ 检测到变异嫩芽！";
+
+        float t = 0f;
+        while (t < 1.4f)
+        {
+            t += Time.deltaTime;
+            float alpha = 0.5f + 0.5f * Mathf.Sin(t * 14f);
+            mutationFlash.color = new Color(1f, 0.86f, 0.40f, Mathf.Clamp01(alpha) * 0.7f);
+            yield return null;
+        }
+
+        mutationFlash.color = new Color(1f, 0.86f, 0.40f, 0f);
+        MVPGameSession.MarkGenePlotMutationViewed(plot.regionId);
+
+        mutationPopupBody.text =
+            "—— 变异嫩芽 · 记录 ——\n\n" +
+            "优质地块 [" + plot.regionId + "] 上的 " +
+            (FindSpore(plot.sporeId)).displayName +
+            " 群落出现了稀有变异。\n\n" +
+            "叶脉泛起荧光，这是完全超出样本库的新性状。\n" +
+            "已标记入册，供后续培育研究。\n";
+        mutationPopup.gameObject.SetActive(true);
+    }
+
+    private void CloseMutationPopup()
+    {
+        mutationPopup.gameObject.SetActive(false);
     }
 
     private static SporeType FindSpore(string id)
@@ -530,11 +852,10 @@ public class GeneCultivationTaskController : MonoBehaviour
 
     private void RestoreRegionColors()
     {
-        SeedingRegion[] regions = GeneCultivationConfig.Regions;
-        for (int i = 0; i < regions.Length; i++)
+        for (int i = 0; i < regionCells.Count; i++)
         {
-            regionButtons[i].GetComponent<Image>().color =
-                regions[i].suitable ? UIPalette.Suitable : UIPalette.Unsuitable;
+            regionCells[i].image.color =
+                regionCells[i].region.suitable ? UIPalette.Suitable : UIPalette.Unsuitable;
         }
     }
 
@@ -565,6 +886,14 @@ public class GeneCultivationTaskController : MonoBehaviour
         }
     }
 
+    private static void StretchFill(RectTransform rect)
+    {
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.one;
+        rect.offsetMin = Vector2.zero;
+        rect.offsetMax = Vector2.zero;
+    }
+
     private static void SetAnchored(
         RectTransform rect,
         Vector2 anchorMin,
@@ -578,5 +907,39 @@ public class GeneCultivationTaskController : MonoBehaviour
         rect.pivot = anchorMin;
         rect.anchoredPosition = anchoredPosition;
         rect.sizeDelta = sizeDelta;
+    }
+
+    /// <summary>播种地块拖拽检测器（运行在播种板上）。</summary>
+    private sealed class RegionDragHandler : MonoBehaviour,
+        IBeginDragHandler,
+        IDragHandler,
+        IEndDragHandler
+    {
+        public GeneCultivationTaskController owner;
+
+        public void OnBeginDrag(PointerEventData eventData)
+        {
+            owner?.OnRegionDragBegin(eventData);
+        }
+
+        public void OnDrag(PointerEventData eventData)
+        {
+            owner?.OnRegionDrag(eventData);
+        }
+
+        public void OnEndDrag(PointerEventData eventData)
+        {
+            owner?.OnRegionDragEnd(eventData);
+        }
+    }
+
+    private sealed class RegionCell
+    {
+        public int index;
+        public SeedingRegion region;
+        public RectTransform rect;
+        public Image image;
+        public Vector2 center;
+        public Vector2 half;
     }
 }

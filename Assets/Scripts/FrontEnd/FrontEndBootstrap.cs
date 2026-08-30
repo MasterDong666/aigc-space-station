@@ -50,6 +50,7 @@ public class FrontEndBootstrap : MonoBehaviour
     private void Awake()
     {
         Application.runInBackground = true;
+        SaveManager.TryLoadIntoSession();
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
         EnsureCamera();
@@ -86,6 +87,13 @@ public class FrontEndBootstrap : MonoBehaviour
         {
             ShowOnly(mainPanel);
         }
+
+        GameFlowManager.HookProgressListener();
+
+        if (mainPanel.activeSelf)
+        {
+            GameFlowManager.SetStage(FlowStage.MainMenu, "Awake");
+        }
     }
 
 #if UNITY_EDITOR
@@ -102,7 +110,7 @@ public class FrontEndBootstrap : MonoBehaviour
                 MVPGameSession.SetPlayerProfile("预览修复官", "RESTORER_A");
             }
 
-            StartOpeningNarrative();
+            StartOpeningSequence();
         }
         else if (Input.GetKeyDown(KeyCode.F4))
         {
@@ -254,6 +262,8 @@ public class FrontEndBootstrap : MonoBehaviour
             new Vector2(360f, 82f)
         );
         enter.onClick.AddListener(ShowProfile);
+
+        UIManager.Register("MainMenu", mainPanel);
     }
 
     private void BuildProfilePanel(Transform parent)
@@ -482,6 +492,8 @@ public class FrontEndBootstrap : MonoBehaviour
             new Vector2(360f, 76f)
         );
         confirm.onClick.AddListener(ConfirmProfile);
+
+        UIManager.Register("ProfileSetup", profilePanel);
     }
 
     private void BuildNarrativePanel(Transform parent)
@@ -654,6 +666,8 @@ public class FrontEndBootstrap : MonoBehaviour
             new Vector2(180f, 48f)
         );
         skip.onClick.AddListener(FinishNarrative);
+
+        UIManager.Register("Narrative", narrativePanel);
     }
 
     private void BuildExtendedFlow(Transform parent)
@@ -669,10 +683,14 @@ public class FrontEndBootstrap : MonoBehaviour
             parent
         );
         endingUI.BuildUI();
+
+        UIManager.Register("NoahHolidayFlow", holidayUI.gameObject);
+        UIManager.Register("EndingChoiceFlow", endingUI.gameObject);
     }
 
     private void ShowProfile()
     {
+        GameFlowManager.SetStage(FlowStage.ProfileSetup, "EnterGame");
         nameInput.text = MVPGameSession.HasPlayerProfile
             ? MVPGameSession.PlayerName
             : string.Empty;
@@ -693,7 +711,8 @@ public class FrontEndBootstrap : MonoBehaviour
         }
 
         MVPGameSession.SetPlayerProfile(enteredName, selectedAvatar);
-        StartOpeningNarrative();
+        SaveManager.TrySave();
+        StartOpeningSequence();
     }
 
     private void SelectAvatar(string id, int selectedIndex)
@@ -752,13 +771,84 @@ public class FrontEndBootstrap : MonoBehaviour
             () =>
             {
                 MVPGameSession.MarkOpeningCompleted();
-                SceneTransitionManager.EnterStationHub();
+                ShowAIIntroPopup();
             }
         );
     }
 
+    /// <summary>开场序列：结局引入视频 → 正序视频/叙事卡 →（AI 弹窗在完成后弹出）。</summary>
+    private void StartOpeningSequence()
+    {
+        GameFlowManager.SetStage(FlowStage.EndingTeaserVideo, "confirm profile");
+        VideoManager.Play("ending_teaser", () =>
+        {
+            GameFlowManager.SetStage(FlowStage.OpeningVideo, "teaser done");
+            PlayOpeningVideoOrNarrative();
+        });
+    }
+
+    /// <summary>
+    /// 开场叙事入口：接入 opening.mp4（存在则播放并跳过叙事卡；缺失则回退既有叙事卡）。
+    /// 这样团队放入正序视频后自动替换，无需改代码；无视频时流程照常推进。
+    /// </summary>
+    private void PlayOpeningVideoOrNarrative()
+    {
+        if (VideoManager.HasClip("opening"))
+        {
+            VideoManager.Play("opening", () =>
+            {
+                MVPGameSession.MarkOpeningCompleted();
+                ShowAIIntroPopup();
+            });
+            return;
+        }
+
+        StartOpeningNarrative();
+    }
+
+    /// <summary>AI 弹窗介绍游戏（新增独立弹窗，不修改现有叙事卡）。</summary>
+    private void ShowAIIntroPopup()
+    {
+        GameFlowManager.SetStage(FlowStage.AIIntroPopup, "opening done");
+        PopupManager.Show(
+            PopupRequests.AIIntro(MVPGameSession.PlayerName),
+            PlayActOneVideo
+        );
+    }
+
+    /// <summary>第一幕视频（占位自动完成）。</summary>
+    private void PlayActOneVideo()
+    {
+        GameFlowManager.SetStage(FlowStage.ActOneVideo, "ai intro closed");
+        VideoManager.Play("act_one", ShowGameIntroPopup);
+    }
+
+    /// <summary>游戏介绍弹窗，确认后完成开场并进入空间站。</summary>
+    private void ShowGameIntroPopup()
+    {
+        GameFlowManager.SetStage(FlowStage.GameIntroPopup, "act one done");
+        PopupManager.Show(PopupRequests.GameIntro(), () =>
+        {
+            SaveManager.TrySave();
+            SceneTransitionManager.EnterStationHub();
+        });
+    }
+
     private void StartFirstReturnNarrative()
     {
+        GameFlowManager.SetStage(FlowStage.HolidayVideo, "first return");
+
+        // 接入 holiday.mp4（存在则播放并跳过返航叙事卡；缺失则回退既有叙事卡）。
+        if (VideoManager.HasClip("holiday"))
+        {
+            VideoManager.Play("holiday", () =>
+            {
+                MVPGameSession.CompleteFirstReturn();
+                ShowHolidayFlow();
+            });
+            return;
+        }
+
         NarrativeSlide[] slides =
         {
             new(
@@ -795,10 +885,12 @@ public class FrontEndBootstrap : MonoBehaviour
 
     private void ShowHolidayFlow()
     {
+        GameFlowManager.SetStage(FlowStage.PuzzleGame, "holiday hub");
         ShowOnly(null);
         holidayUI.Show(
             () =>
             {
+                GameFlowManager.SetStage(FlowStage.FreePlay, "holiday depart");
                 MVPGameSession.BeginNextWorkday();
                 SceneTransitionManager.EnterStationHub();
             }
@@ -807,8 +899,13 @@ public class FrontEndBootstrap : MonoBehaviour
 
     private void ShowEndingFlow()
     {
+        GameFlowManager.SetStage(FlowStage.EndingChoice, "final choice");
         ShowOnly(null);
-        endingUI.Show(() => ShowOnly(mainPanel));
+        endingUI.Show(() =>
+        {
+            GameFlowManager.SetStage(FlowStage.MainMenu, "ending back");
+            ShowOnly(mainPanel);
+        });
     }
 
     private void PlayNarrative(

@@ -40,6 +40,33 @@ public static class OrbitCalibrationConfig
     public const string TaskId = "orbit_inspection";
     public const int Reward = 5;
 
+    /// <summary>全自动托管时奖励效率降低 15%（奖励乘以该系数）。</summary>
+    public const float AutonomousRewardMultiplier = 0.85f;
+
+    /// <summary>连续手动校准达到该天数时解锁“前代修复官日志碎片”彩蛋。</summary>
+    public const int ManualStreakTarget = 7;
+
+    /// <summary>巡检对象：三条轨道（每工作日标记其中一条为异常）。</summary>
+    public static readonly string[] OrbitNames =
+    {
+        "同步轨道 α",
+        "极地轨道 β",
+        "赤道轨道 γ",
+    };
+
+    /// <summary>当前工作日的异常轨道下标（按工作日轮转，稳定可预期）。</summary>
+    public static int GetAbnormalOrbitIndex()
+    {
+        int count = OrbitNames.Length;
+        return count == 0 ? 0 : (MVPGameSession.Workday % count);
+    }
+
+    /// <summary>全自动托管当天的实际奖励（扣除 15%）。</summary>
+    public static int GetAutonomousReward()
+    {
+        return Mathf.Max(0, Mathf.RoundToInt(Reward * AutonomousRewardMultiplier));
+    }
+
     public static readonly CalibrationParam[] Params =
     {
         new CalibrationParam

@@ -51,6 +51,13 @@ public class EndingChoiceUI : MonoBehaviour
             return;
         }
 
+        // 结局前奏视频（存在则播放并跳过叙事卡，缺失则回退叙事卡）
+        if (VideoManager.HasClip("ending_prequel"))
+        {
+            VideoManager.Play("ending_prequel", () => ShowOnly(choiceRoot));
+            return;
+        }
+
         ShowOnly(preludeRoot);
     }
 
@@ -465,7 +472,16 @@ public class EndingChoiceUI : MonoBehaviour
     private void SelectEnding(FinalEndingChoice choice)
     {
         MVPGameSession.CompleteEnding(choice);
+        SaveManager.TrySave();
         ShowEndingResult(choice, true);
+    }
+
+    /// <summary>结局视频 ID：结局A/B 各对应独立视频。</summary>
+    private static string EndingClipId(FinalEndingChoice choice)
+    {
+        return choice == FinalEndingChoice.EndRestorationProgram
+            ? "ending_terminate"
+            : "ending_sacrifice";
     }
 
     private void ShowEndingResult(
@@ -473,6 +489,16 @@ public class EndingChoiceUI : MonoBehaviour
         bool newlySelected
     )
     {
+        // 新选择时先播放对应结局视频，播完再展示档案卡；无视频/已看过则直接展示。
+        if (newlySelected && VideoManager.HasClip(EndingClipId(choice)))
+        {
+            VideoManager.Play(EndingClipId(choice), () =>
+            {
+                ShowEndingResult(choice, false);
+            });
+            return;
+        }
+
         bool endProgram = choice == FinalEndingChoice.EndRestorationProgram;
         resultImage.texture = endProgram
             ? noahEndingTexture
@@ -503,6 +529,7 @@ public class EndingChoiceUI : MonoBehaviour
 
     private void ReturnToMenu()
     {
+        GameFlowManager.SetStage(FlowStage.End, "ending result closed");
         gameObject.SetActive(false);
         returnToMenuAction?.Invoke();
     }

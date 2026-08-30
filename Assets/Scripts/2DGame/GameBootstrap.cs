@@ -34,24 +34,31 @@ public class GameBootstrap : MonoBehaviour
 
         mainHub = CreatePanel<MainHubUI>("MainPanel", canvas.transform);
         mainHub.BuildUI();
+        UIManager.Register("MainPanel", mainHub.gameObject);
 
         orbitTask = CreatePanel<OrbitTaskController>("OrbitPanel", canvas.transform);
         orbitTask.BuildUI();
+        UIManager.Register("OrbitPanel", orbitTask.gameObject);
 
         geneTask = CreatePanel<GeneCultivationTaskController>("GenePanel", canvas.transform);
         geneTask.BuildUI();
+        UIManager.Register("GenePanel", geneTask.gameObject);
 
         greenhouse = CreatePanel<GreenhouseHarvestUI>("GreenhousePanel", canvas.transform);
         greenhouse.BuildUI();
+        UIManager.Register("GreenhousePanel", greenhouse.gameObject);
 
         ecologyTask = CreatePanel<EcologyNutrientTaskController>("EcologyPanel", canvas.transform);
         ecologyTask.BuildUI();
+        UIManager.Register("EcologyPanel", ecologyTask.gameObject);
 
         completionPopup = CreatePanel<CompletionPopupUI>("CompletionPopup", canvas.transform);
         completionPopup.BuildUI();
+        UIManager.Register("CompletionPopup", completionPopup.gameObject);
 
         tutorialUI = CreatePanel<TaskTutorialUI>("TaskTutorial", canvas.transform);
         tutorialUI.BuildUI();
+        UIManager.Register("TaskTutorial", tutorialUI.gameObject);
 
         // 流程串联
         mainHub.OrbitTaskClicked += () => OpenTaskWithTutorial(
@@ -63,6 +70,8 @@ public class GameBootstrap : MonoBehaviour
             "今日轨道巡检完成",
             reward
         );
+
+        mainHub.FinalEndingClicked += OpenEndingFromHub;
 
         mainHub.GeneCultivationClicked += () => OpenTaskWithTutorial(
             MiniGameId.GeneCultivation,
@@ -83,18 +92,30 @@ public class GameBootstrap : MonoBehaviour
         );
 
         OpenRequestedTaskOrMainHub();
+
+        GameFlowManager.HookProgressListener();
     }
 
     private void OpenOrbitTask()
     {
+        GameFlowManager.SetStage(FlowStage.DailyGame, "open orbit");
         mainHub.Hide();
         orbitTask.Show();
     }
 
     private void OpenGeneTask()
     {
+        GameFlowManager.SetStage(FlowStage.DailyGame, "open gene");
         mainHub.Hide();
         geneTask.OpenTask();
+    }
+
+    /// <summary>从主界面独立结局入口进入结局流程（进度达 50 后可用）。</summary>
+    private void OpenEndingFromHub()
+    {
+        GameFlowManager.SetStage(FlowStage.EndingChoice, "hub final ending");
+        MVPGameSession.RequestNarrative(GameNarrativeRoute.FinalChoice);
+        SceneTransitionManager.EnterFrontEnd();
     }
 
     private void OpenRequestedTaskOrMainHub()
@@ -121,6 +142,7 @@ public class GameBootstrap : MonoBehaviour
                 break;
             default:
                 launchedFromStation = false;
+                GameFlowManager.SetStage(FlowStage.MainMenu, "standalone 2D");
                 mainHub.Show();
                 break;
         }
@@ -143,11 +165,13 @@ public class GameBootstrap : MonoBehaviour
             return;
         }
 
+        GameFlowManager.SetStage(FlowStage.DailyTutorial, "first run");
         tutorialUI.Show(id, openTask);
     }
 
     private void OpenEcologyTask()
     {
+        GameFlowManager.SetStage(FlowStage.DailyGame, "open ecology");
         mainHub.Hide();
         ecologyTask.OpenTask();
     }

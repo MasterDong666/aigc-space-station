@@ -674,6 +674,49 @@ public class NoahPuzzlePiece : MonoBehaviour,
         rect.anchorMax = Vector2.one;
         rect.offsetMin = Vector2.zero;
         rect.offsetMax = Vector2.zero;
+        StartCoroutine(FlipIn());
         placedAction?.Invoke();
+    }
+
+    /// <summary>拼图翻转动画：正确归位后沿 X 轴 1→0→1 翻过，并淡入绿色对勾。</summary>
+    private IEnumerator FlipIn()
+    {
+        GetComponent<RawImage>().raycastTarget = false;
+        Text check = CreateCheckGlyph();
+
+        float dur = 0.34f;
+        float t = 0f;
+        while (t < dur)
+        {
+            t += Time.deltaTime;
+            float p = t / dur;
+            float sx = Mathf.Lerp(0.08f, 1f, Mathf.Abs(Mathf.Cos(p * Mathf.PI)));
+            rect.localScale = new Vector3(sx, 1f, 1f);
+            yield return null;
+        }
+
+        rect.localScale = Vector3.one;
+
+        for (float f = 0f; f < 0.22f; f += Time.deltaTime)
+        {
+            check.color = new Color(0.45f, 0.95f, 0.55f, Mathf.Clamp01(f / 0.22f));
+            yield return null;
+        }
+
+        check.color = new Color(0.45f, 0.95f, 0.55f, 1f);
+    }
+
+    private Text CreateCheckGlyph()
+    {
+        Text check = UIFactory.CreateText(
+            "PlacedCheck",
+            transform,
+            "✓",
+            46,
+            new Color(0.45f, 0.95f, 0.55f, 0f)
+        );
+        UIFactory.Stretch(check.rectTransform);
+        check.raycastTarget = false;
+        return check;
     }
 }

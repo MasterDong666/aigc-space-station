@@ -129,6 +129,15 @@ public class StationDailyReturnController : MonoBehaviour
             MVPGameSession.IsEndingUnlocked &&
             !MVPGameSession.EndingCompleted;
 
+        GameFlowManager.SetStage(
+            endingReady
+                ? FlowStage.EndingUnlock
+                : firstReturn
+                    ? FlowStage.HolidayPopup
+                    : FlowStage.FreePlay,
+            "daily return panel"
+        );
+
         eyebrowText.text = endingReady
             ? "CHENXI // 最终协议已解锁"
             : firstReturn
@@ -216,6 +225,8 @@ public class StationDailyReturnController : MonoBehaviour
         {
             MVPGameSession.BeginNextWorkday();
         }
+
+        SaveManager.TrySave();
 
         panelRoot.SetActive(false);
         ReleasePlayerLock();
