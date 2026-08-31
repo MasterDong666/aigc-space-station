@@ -249,7 +249,10 @@ public static class MVPGameSession
         return now >= matureAt;
     }
 
-    /// <summary>地块成熟的绝对时刻（UTC ticks）。优先使用存档字段，旧存档回退为 sowedAtUtcTicks + MatureTicks。</summary>
+    /// <summary>
+    /// 地块成熟的绝对时刻（UTC ticks）。旧版本曾写入真实 72 小时结束时间；
+    /// 检测到这种长周期记录时自动按当前 5 秒演示规则换算，避免旧存档继续等待三天。
+    /// </summary>
     public static long GetGenePlotMatureAtUtcTicks(GenePlotData plot)
     {
         if (plot == null)
@@ -257,9 +260,15 @@ public static class MVPGameSession
             return 0L;
         }
 
-        return plot.matureAtUtcTicks > 0L
-            ? plot.matureAtUtcTicks
-            : plot.sowedAtUtcTicks + MatureTicks;
+        long previewMatureAt = plot.sowedAtUtcTicks + MatureTicks;
+        if (plot.matureAtUtcTicks <= 0L)
+        {
+            return previewMatureAt;
+        }
+
+        long storedDuration = plot.matureAtUtcTicks - plot.sowedAtUtcTicks;
+        bool isLegacyRealTimeTimer = storedDuration > MatureTicks * 2L;
+        return isLegacyRealTimeTimer ? previewMatureAt : plot.matureAtUtcTicks;
     }
 
     /// <summary>优质成熟地块尝试触发变异彩蛋（每块地一次）。</summary>
