@@ -460,27 +460,37 @@ public class FrontEndBootstrap : MonoBehaviour
             new Vector2(420f, 100f)
         );
 
-        profileHint = UIFactory.CreateText(
-            "Hint",
+        Image hintPill = UIFactory.CreatePanel(
+            "ProfileHintPill",
             card.transform,
-            "昵称将在晨曦通讯和任务报告中显示",
-            20,
-            UIPalette.TextDim,
-            TextAnchor.MiddleLeft
+            new Color(0.07f, 0.20f, 0.25f, 0.94f)
         );
         SetAnchored(
-            profileHint.rectTransform,
+            hintPill.rectTransform,
             new Vector2(0f, 0f),
             new Vector2(0f, 0f),
-            new Vector2(72f, 82f),
-            new Vector2(700f, 40f)
+            new Vector2(72f, 130f),
+            new Vector2(650f, 48f)
         );
+        MiniGameVisuals.Round(hintPill);
+
+        profileHint = UIFactory.CreateText(
+            "Hint",
+            hintPill.transform,
+            "✦  昵称将在晨曦通讯和任务报告中显示",
+            19,
+            new Color(0.78f, 0.94f, 0.91f, 1f),
+            TextAnchor.MiddleLeft
+        );
+        UIFactory.Stretch(profileHint.rectTransform);
+        profileHint.rectTransform.offsetMin = new Vector2(20f, 0f);
+        profileHint.rectTransform.offsetMax = new Vector2(-16f, 0f);
 
         Button confirm = UIFactory.CreateButton(
             "ConfirmProfile",
             card.transform,
             "确认身份并继续",
-            new Vector2(360f, 76f),
+            new Vector2(390f, 80f),
             new Color(0.94f, 0.46f, 0.24f, 1f),
             29
         );
@@ -488,8 +498,8 @@ public class FrontEndBootstrap : MonoBehaviour
             confirm.GetComponent<RectTransform>(),
             new Vector2(0f, 0f),
             new Vector2(0f, 0f),
-            new Vector2(72f, 24f),
-            new Vector2(360f, 76f)
+            new Vector2(72f, 32f),
+            new Vector2(390f, 80f)
         );
         confirm.onClick.AddListener(ConfirmProfile);
 

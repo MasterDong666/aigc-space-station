@@ -40,7 +40,7 @@ public struct IntIntPair
 
 /// <summary>
 /// 任务3播种地块的运行时状态（持久化）。
-/// sowedAtUtcTicks 用于真实 72 小时成熟倒计时，退出游戏再进入仍正确。
+/// sowedAtUtcTicks / matureAtUtcTicks 用于保存压缩培育演示的起止时间。
 /// </summary>
 [Serializable]
 public class GenePlotData

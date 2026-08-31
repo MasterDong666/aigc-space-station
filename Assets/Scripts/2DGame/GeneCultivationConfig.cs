@@ -58,8 +58,14 @@ public static class GeneCultivationConfig
     /// <summary>奖励值集中配置（与任务1惯例一致；最终数值待整体数值设计后统一调整）。</summary>
     public const int Reward = 5;
 
-    /// <summary>播种到成熟的真实时长（小时）。退出游戏再进入仍按 UTC 时间戳正确计算。</summary>
+    /// <summary>画面中展示的完整生态培育时长（虚拟小时）。</summary>
     public const float MaturationHours = 72f;
+
+    /// <summary>
+    /// 比赛演示中用多少现实秒演完 72 小时培育过程。
+    /// 这是视觉时间压缩，不要求玩家真实等待三天。
+    /// </summary>
+    public const float MaturationPreviewSeconds = 5f;
 
     /// <summary>优质成熟地块出现变异彩蛋的概率（可配置）。</summary>
     public const float MutationChance = 0.10f;

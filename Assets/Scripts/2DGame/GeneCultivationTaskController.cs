@@ -8,7 +8,7 @@ using UnityEngine.UI;
 /// <summary>
 /// 任务3【基因孢子无人机播撒培育】主流程控制器。
 /// 阶段：诺亚基因库（分层基因树）→ 播种区域（拖拽框选）→ 无人机群播种
-/// → 培育（真实 72 小时倒计时，可 Debug 跳过）→ 群落面板 →（进入太空大棚）。
+/// → 培育（约 5 秒演示 72 小时进程）→ 群落面板 →（进入太空大棚）。
 /// 基因树逐层解锁、地块成熟状态、变异彩蛋均通过 MVPGameSession 持久化。
 /// </summary>
 public class GeneCultivationTaskController : MonoBehaviour
@@ -57,6 +57,7 @@ public class GeneCultivationTaskController : MonoBehaviour
     private const int DroneCount = 12;
 
     private Text growthStatusText;
+    private Image growthProgressFill;
     private Button viewResultButton;
     private GenePlotData activePlot;
 
@@ -87,11 +88,7 @@ public class GeneCultivationTaskController : MonoBehaviour
             return;
         }
 
-        // 把播种时刻回拨到 73 小时前：既早于 72 小时成熟点（成为"已成熟"），
-        // 又保留接近 1 小时的余量便于显示剩余时间。matureAt 显式重算以保持一致。
-        plot.sowedAtUtcTicks =
-            (DateTime.UtcNow - TimeSpan.FromHours(73f)).Ticks;
-        plot.matureAtUtcTicks = plot.sowedAtUtcTicks + MVPGameSession.MatureTicks;
+        plot.matureAtUtcTicks = DateTime.UtcNow.Ticks - 1L;
         SaveManager.TrySave();
     }
 
@@ -131,6 +128,8 @@ public class GeneCultivationTaskController : MonoBehaviour
         seedingStatusText.text = string.Empty;
         releaseDronesButton.gameObject.SetActive(false);
         viewResultButton.gameObject.SetActive(false);
+        growthStatusText.text = string.Empty;
+        SetGrowthProgress(0f);
         dragActive = false;
         HideSelectionRect();
         RestoreRegionColors();
@@ -388,11 +387,20 @@ public class GeneCultivationTaskController : MonoBehaviour
         SetAnchored(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -70f), new Vector2(900f, 70f));
         MiniGameVisuals.AddStepRail(subGrowth.transform, MiniGameThemeId.Gene, new[] { "基因样本", "播种区域", "无人机群", "快速培育", "结果" }, 3);
 
-        Image growthCard = MiniGameVisuals.CreateCard("GrowthStatusCard", subGrowth.transform, new Vector2(920f, 300f), MiniGameThemeId.Gene);
-        SetAnchored(growthCard.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 25f), new Vector2(920f, 300f));
+        Image growthCard = MiniGameVisuals.CreateCard("GrowthStatusCard", subGrowth.transform, new Vector2(960f, 340f), MiniGameThemeId.Gene);
+        SetAnchored(growthCard.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 25f), new Vector2(960f, 340f));
 
         Text growthGlyph = UIFactory.CreateText("GrowthGlyph", growthCard.transform, "✦  ◉  ✦", 46, MiniGameVisuals.Theme(MiniGameThemeId.Gene).accentWarm);
-        SetAnchored(growthGlyph.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -46f), new Vector2(500f, 60f));
+        SetAnchored(growthGlyph.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -38f), new Vector2(500f, 60f));
+
+        Text timeScaleLabel = UIFactory.CreateText(
+            "GrowthTimeScale",
+            growthCard.transform,
+            "快速培育演示  ·  72 小时生态周期",
+            21,
+            MiniGameVisuals.Theme(MiniGameThemeId.Gene).accentWarm
+        );
+        SetAnchored(timeScaleLabel.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -98f), new Vector2(700f, 36f));
 
         growthStatusText = UIFactory.CreateText(
             "TxtGrowthStatus",
@@ -401,7 +409,27 @@ public class GeneCultivationTaskController : MonoBehaviour
             40,
             UIPalette.Accent
         );
-        SetAnchored(growthStatusText.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -10f), new Vector2(860f, 90f));
+        SetAnchored(growthStatusText.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -5f), new Vector2(880f, 80f));
+
+        Image progressTrack = UIFactory.CreatePanel(
+            "GrowthProgressTrack",
+            growthCard.transform,
+            new Color(0.04f, 0.025f, 0.10f, 0.92f)
+        );
+        SetAnchored(progressTrack.rectTransform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 48f), new Vector2(760f, 24f));
+        MiniGameVisuals.Round(progressTrack);
+
+        growthProgressFill = UIFactory.CreatePanel(
+            "GrowthProgressFill",
+            progressTrack.transform,
+            MiniGameVisuals.Theme(MiniGameThemeId.Gene).accent
+        );
+        growthProgressFill.rectTransform.anchorMin = Vector2.zero;
+        growthProgressFill.rectTransform.anchorMax = new Vector2(0f, 1f);
+        growthProgressFill.rectTransform.pivot = new Vector2(0f, 0.5f);
+        growthProgressFill.rectTransform.offsetMin = Vector2.zero;
+        growthProgressFill.rectTransform.offsetMax = Vector2.zero;
+        MiniGameVisuals.Round(growthProgressFill);
 
         viewResultButton = UIFactory.CreateButton(
             "BtnViewResult",
@@ -749,7 +777,7 @@ public class GeneCultivationTaskController : MonoBehaviour
 
         sowingStatusText.text = "无人机群已覆盖选定区域";
 
-        // 播种落库（真实 72h 计时起点）
+        // 播种落库：现实约 5 秒，画面压缩演示完整 72 小时周期。
         int quality = ComputePlotQuality();
         MVPGameSession.SowGenePlot(SelectedRegionId, SelectedSporeId, quality);
 
@@ -775,7 +803,7 @@ public class GeneCultivationTaskController : MonoBehaviour
         return Mathf.Clamp(quality, 0, 100);
     }
 
-    // ===== 培育：真实 72h 倒计时 =====
+    // ===== 培育：约 5 秒演示 72h 倒计时 =====
 
     private IEnumerator GrowthRoutine()
     {
@@ -801,7 +829,13 @@ public class GeneCultivationTaskController : MonoBehaviour
                 break;
             }
 
-            long totalSec = remain / TimeSpan.TicksPerSecond;
+            float realSecondsRemaining = remain / (float)TimeSpan.TicksPerSecond;
+            float normalizedRemaining = Mathf.Clamp01(
+                realSecondsRemaining / GeneCultivationConfig.MaturationPreviewSeconds
+            );
+            long totalSec = (long)Mathf.Ceil(
+                normalizedRemaining * GeneCultivationConfig.MaturationHours * 3600f
+            );
             long hours = totalSec / 3600;
             long minutes = (totalSec % 3600) / 60;
             long seconds = totalSec % 60;
@@ -810,6 +844,8 @@ public class GeneCultivationTaskController : MonoBehaviour
                 minutes.ToString("00") + " 分 " +
                 seconds.ToString("00") + " 秒";
 
+            SetGrowthProgress(1f - normalizedRemaining);
+
             yield return new WaitForEndOfFrame();
         }
 
@@ -817,6 +853,7 @@ public class GeneCultivationTaskController : MonoBehaviour
         if (plot != null && MVPGameSession.IsGenePlotMature(plot))
         {
             growthStatusText.text = "群落培育完成";
+            SetGrowthProgress(1f);
             GrowthFinished = true;
             viewResultButton.gameObject.SetActive(true);
 
@@ -831,6 +868,19 @@ public class GeneCultivationTaskController : MonoBehaviour
 
             SaveManager.TrySave();
         }
+    }
+
+    private void SetGrowthProgress(float progress)
+    {
+        if (growthProgressFill == null)
+        {
+            return;
+        }
+
+        RectTransform fill = growthProgressFill.rectTransform;
+        fill.anchorMax = new Vector2(Mathf.Clamp01(progress), 1f);
+        fill.offsetMin = Vector2.zero;
+        fill.offsetMax = Vector2.zero;
     }
 
     // ===== 结果 / 群落面板 =====

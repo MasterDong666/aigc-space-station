@@ -236,7 +236,7 @@ public static class MVPGameSession
         return null;
     }
 
-    /// <summary>地块是否已成熟（真实 72 小时，按 UTC 时间戳判断，退出重进仍正确）。</summary>
+    /// <summary>地块是否已完成压缩培育演示（72 小时在数秒内推进）。</summary>
     public static bool IsGenePlotMature(GenePlotData plot)
     {
         if (plot == null)
@@ -293,7 +293,12 @@ public static class MVPGameSession
         }
     }
 
-    public const long MatureTicks = 72L * 3600L * 10000000L;
+    /// <summary>
+    /// MVP 展示采用时间压缩：画面表现 72 小时，现实约 5 秒完成。
+    /// 仍保存绝对 UTC 结束时间，切换界面后不会重置进度。
+    /// </summary>
+    public static readonly long MatureTicks =
+        (long)(GeneCultivationConfig.MaturationPreviewSeconds * TimeSpan.TicksPerSecond);
 
     public static bool IsTaskCompleted(MiniGameId id)
     {
