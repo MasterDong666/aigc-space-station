@@ -32,6 +32,13 @@ public class GameBootstrap : MonoBehaviour
 
         Canvas canvas = UIFactory.CreateCanvas("Canvas");
 
+        // 全局退出入口始终位于各任务面板之上，允许玩家在任意阶段安全返回主菜单。
+        MainMenuReturnUI mainMenuReturn = CreatePanel<MainMenuReturnUI>(
+            "MainMenuReturnUI",
+            canvas.transform
+        );
+        mainMenuReturn.BuildUI();
+
         mainHub = CreatePanel<MainHubUI>("MainPanel", canvas.transform);
         mainHub.BuildUI();
         UIManager.Register("MainPanel", mainHub.gameObject);
@@ -59,6 +66,9 @@ public class GameBootstrap : MonoBehaviour
         tutorialUI = CreatePanel<TaskTutorialUI>("TaskTutorial", canvas.transform);
         tutorialUI.BuildUI();
         UIManager.Register("TaskTutorial", tutorialUI.gameObject);
+
+        // CreatePanel 的先后顺序决定 uGUI 绘制顺序；退出入口必须覆盖所有任务面板。
+        mainMenuReturn.transform.SetAsLastSibling();
 
         // 流程串联
         mainHub.OrbitTaskClicked += () => OpenTaskWithTutorial(
