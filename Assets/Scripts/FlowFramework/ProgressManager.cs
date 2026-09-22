@@ -68,4 +68,10 @@ public static class ProgressManager
         ProgressChanged = null;
         WorkdayChanged = null;
     }
+
+    /// <summary>重新开始游戏前清理静态订阅，进入新场景后会自动重挂。</summary>
+    public static void ResetRuntimeState()
+    {
+        ResetForPlay();
+    }
 }

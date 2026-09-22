@@ -176,7 +176,7 @@ public class GameBootstrap : MonoBehaviour
         }
 
         GameFlowManager.SetStage(FlowStage.DailyTutorial, "first run");
-        tutorialUI.Show(id, openTask);
+        tutorialUI.Show(id, openTask, ReturnFromMiniGame);
     }
 
     private void OpenEcologyTask()

@@ -18,6 +18,7 @@ public class EndingChoiceUI : MonoBehaviour
     private Texture2D noahEndingTexture;
     private Texture2D sacrificeEndingTexture;
     private Action returnToMenuAction;
+    private Action backToStationAction;
 
     public void BuildUI()
     {
@@ -37,9 +38,13 @@ public class EndingChoiceUI : MonoBehaviour
         gameObject.SetActive(false);
     }
 
-    public void Show(Action onReturnToMenu)
+    public void Show(
+        Action onReturnToMenu,
+        Action onBackToStation = null
+    )
     {
         returnToMenuAction = onReturnToMenu;
+        backToStationAction = onBackToStation;
         gameObject.SetActive(true);
 
         if (
@@ -51,10 +56,31 @@ public class EndingChoiceUI : MonoBehaviour
             return;
         }
 
+        ShowPreludeStep();
+    }
+
+    public void ShowChoiceDirect(
+        Action onReturnToMenu,
+        Action onBackToStation = null
+    )
+    {
+        returnToMenuAction = onReturnToMenu;
+        backToStationAction = onBackToStation;
+        gameObject.SetActive(true);
+        ShowOnly(choiceRoot);
+    }
+
+    private void ShowPreludeStep()
+    {
         // 结局前奏视频（存在则播放并跳过叙事卡，缺失则回退叙事卡）
         if (VideoManager.HasClip("ending_prequel"))
         {
-            VideoManager.Play("ending_prequel", () => ShowOnly(choiceRoot));
+            ShowOnly(null);
+            VideoManager.Play(
+                "ending_prequel",
+                () => ShowOnly(choiceRoot),
+                ReturnToPreviousFlow
+            );
             return;
         }
 
@@ -180,6 +206,11 @@ public class EndingChoiceUI : MonoBehaviour
             new Vector2(420f, 78f)
         );
         continueButton.onClick.AddListener(() => ShowOnly(choiceRoot));
+        UIFactory.CreateBackButton(
+            preludeRoot.transform,
+            ReturnToPreviousFlow,
+            "EndingPreludeBack"
+        );
     }
 
     private void BuildChoice()
@@ -256,6 +287,11 @@ public class EndingChoiceUI : MonoBehaviour
             new Vector2(1f, 0f),
             new Vector2(0f, 28f),
             new Vector2(0f, 42f)
+        );
+        UIFactory.CreateBackButton(
+            choiceRoot.transform,
+            ShowPreludeStep,
+            "EndingChoiceBack"
         );
         choiceRoot.SetActive(false);
     }
@@ -466,6 +502,28 @@ public class EndingChoiceUI : MonoBehaviour
             new Vector2(430f, 76f)
         );
         menu.onClick.AddListener(ReturnToMenu);
+
+        Button review = UIFactory.CreateButton(
+            "ReviewEndingStory",
+            card.transform,
+            "剧情回顾  ›",
+            new Vector2(270f, 76f),
+            new Color(0.10f, 0.43f, 0.55f, 1f),
+            27
+        );
+        SetAnchored(
+            review.GetComponent<RectTransform>(),
+            new Vector2(0f, 0f),
+            new Vector2(0f, 0f),
+            new Vector2(500f, 46f),
+            new Vector2(270f, 76f)
+        );
+        review.onClick.AddListener(ReviewFullEndingStory);
+        UIFactory.CreateBackButton(
+            resultRoot.transform,
+            ReplayEndingFromResult,
+            "EndingResultBack"
+        );
         resultRoot.SetActive(false);
     }
 
@@ -473,10 +531,10 @@ public class EndingChoiceUI : MonoBehaviour
     {
         MVPGameSession.CompleteEnding(choice);
         SaveManager.TrySave();
-        ShowEndingResult(choice, true);
+        PlayEndingFinal(choice);
     }
 
-    /// <summary>结局视频 ID：结局A/B 各对应独立视频。</summary>
+    /// <summary>结局视频 ID：结局A/B 各对应独立成片。</summary>
     private static string EndingClipId(FinalEndingChoice choice)
     {
         return choice == FinalEndingChoice.EndRestorationProgram
@@ -484,21 +542,64 @@ public class EndingChoiceUI : MonoBehaviour
             : "ending_sacrifice";
     }
 
+    private void PlayEndingFinal(FinalEndingChoice choice)
+    {
+        string clipId = EndingClipId(choice);
+        if (!VideoManager.HasClip(clipId))
+        {
+            ShowEndingResult(choice, false);
+            return;
+        }
+
+        ShowOnly(null);
+        VideoManager.Play(
+            clipId,
+            () => ShowEndingResult(choice, false),
+            () => ShowOnly(choiceRoot)
+        );
+    }
+
+    private void ReplayEndingFromResult()
+    {
+        FinalEndingChoice choice = MVPGameSession.EndingChoice;
+        if (choice == FinalEndingChoice.None)
+        {
+            ShowOnly(choiceRoot);
+            return;
+        }
+
+        PlayEndingFinal(choice);
+    }
+
+    private static string FullEndingClipId(FinalEndingChoice choice)
+    {
+        return choice == FinalEndingChoice.EndRestorationProgram
+            ? "ending_terminate_full"
+            : "ending_sacrifice_full";
+    }
+
+    private void ReviewFullEndingStory()
+    {
+        FinalEndingChoice choice = MVPGameSession.EndingChoice;
+        if (choice == FinalEndingChoice.None)
+        {
+            ShowOnly(choiceRoot);
+            return;
+        }
+
+        ShowOnly(null);
+        VideoManager.Play(
+            FullEndingClipId(choice),
+            () => ShowEndingResult(choice, false),
+            () => ShowEndingResult(choice, false)
+        );
+    }
+
     private void ShowEndingResult(
         FinalEndingChoice choice,
         bool newlySelected
     )
     {
-        // 新选择时先播放对应结局视频，播完再展示档案卡；无视频/已看过则直接展示。
-        if (newlySelected && VideoManager.HasClip(EndingClipId(choice)))
-        {
-            VideoManager.Play(EndingClipId(choice), () =>
-            {
-                ShowEndingResult(choice, false);
-            });
-            return;
-        }
-
         bool endProgram = choice == FinalEndingChoice.EndRestorationProgram;
         resultImage.texture = endProgram
             ? noahEndingTexture
@@ -532,6 +633,12 @@ public class EndingChoiceUI : MonoBehaviour
         GameFlowManager.SetStage(FlowStage.End, "ending result closed");
         gameObject.SetActive(false);
         returnToMenuAction?.Invoke();
+    }
+
+    private void ReturnToPreviousFlow()
+    {
+        gameObject.SetActive(false);
+        backToStationAction?.Invoke();
     }
 
     private void ShowOnly(GameObject target)

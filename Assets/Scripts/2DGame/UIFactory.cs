@@ -175,6 +175,42 @@ public static class UIFactory
     }
 
     /// <summary>
+    /// 创建统一的小型“返回上一步”按钮。默认停靠父节点左上角，
+    /// 用于演示测试时在相邻流程间快速回退。
+    /// </summary>
+    public static Button CreateBackButton(
+        Transform parent,
+        System.Action onClick,
+        string name = "BackStep",
+        string label = "‹  返回"
+    )
+    {
+        Button button = CreateButton(
+            name,
+            parent,
+            label,
+            new Vector2(156f, 52f),
+            new Color(0.025f, 0.09f, 0.14f, 0.94f),
+            21
+        );
+
+        RectTransform rect = button.GetComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0f, 1f);
+        rect.anchorMax = new Vector2(0f, 1f);
+        rect.pivot = new Vector2(0f, 1f);
+        rect.anchoredPosition = new Vector2(24f, -24f);
+        rect.sizeDelta = new Vector2(156f, 52f);
+        MiniGameVisuals.Round(button.targetGraphic as Image);
+
+        if (onClick != null)
+        {
+            button.onClick.AddListener(() => onClick());
+        }
+
+        return button;
+    }
+
+    /// <summary>
     /// 创建标准 uGUI Slider（0~100，默认值 50）。
     /// 结构与官方默认模板一致：Background / Fill Area / Handle Slide Area。
     /// </summary>
@@ -227,7 +263,7 @@ public static class UIFactory
         return slider;
     }
 
-    /// <summary>创建水平进度条（背景 + 填充），填充进度用 fillImage.fillAmount（0~1）。</summary>
+    /// <summary>创建水平进度条（背景 + 左对齐填充）。</summary>
     public static Image CreateProgressBar(
         string name,
         Transform parent,
@@ -239,13 +275,37 @@ public static class UIFactory
         bg.rectTransform.sizeDelta = size;
 
         Image fill = CreatePanel("Fill", bg.transform, UIPalette.Accent);
-        fill.type = Image.Type.Filled;
-        fill.fillMethod = Image.FillMethod.Horizontal;
-        fill.fillAmount = 0f;
-        Stretch(fill.rectTransform);
+        fill.type = Image.Type.Simple;
+        fill.fillAmount = 1f;
+        fill.rectTransform.anchorMin = Vector2.zero;
+        fill.rectTransform.anchorMax = new Vector2(0f, 1f);
+        fill.rectTransform.offsetMin = Vector2.zero;
+        fill.rectTransform.offsetMax = Vector2.zero;
+        fill.enabled = false;
 
         fillImage = fill;
         return bg;
+    }
+
+    /// <summary>
+    /// 用 RectTransform 宽度显示进度，避免无 Sprite 的 Image 忽略 fillAmount。
+    /// </summary>
+    public static void SetProgressFill(Image fillImage, float normalized)
+    {
+        if (fillImage == null)
+        {
+            return;
+        }
+
+        float value = Mathf.Clamp01(normalized);
+        RectTransform rect = fillImage.rectTransform;
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = new Vector2(value, 1f);
+        rect.offsetMin = Vector2.zero;
+        rect.offsetMax = Vector2.zero;
+        fillImage.type = Image.Type.Simple;
+        fillImage.fillAmount = 1f;
+        fillImage.enabled = value > 0.0001f;
     }
 
     /// <summary>

@@ -6,8 +6,8 @@ using UnityEngine.UI;
 
 /// <summary>
 /// A compact 2D Noah holiday chapter. It deliberately avoids a second 3D
-/// environment: the player reconnects with family, completes one biodiversity
-/// puzzle and receives a permanent archive/progress reward.
+/// environment: the player completes one biodiversity puzzle and receives a
+/// permanent archive/progress reward.
 /// </summary>
 public class NoahHolidayUI : MonoBehaviour
 {
@@ -22,6 +22,7 @@ public class NoahHolidayUI : MonoBehaviour
     private Button departButton;
     private Texture2D puzzleTexture;
     private Action departAction;
+    private Action backAction;
     private int placedPieceCount;
 
     public void BuildUI()
@@ -41,9 +42,10 @@ public class NoahHolidayUI : MonoBehaviour
         gameObject.SetActive(false);
     }
 
-    public void Show(Action onDepart)
+    public void Show(Action onDepart, Action onBack = null)
     {
         departAction = onDepart;
+        backAction = onBack;
         gameObject.SetActive(true);
         ShowHolidayHub();
     }
@@ -112,7 +114,7 @@ public class NoahHolidayUI : MonoBehaviour
         Text title = UIFactory.CreateText(
             "Title",
             card.transform,
-            "欢迎回家，修复官",
+            "诺亚休假生活",
             52,
             Color.white,
             TextAnchor.MiddleLeft
@@ -125,39 +127,39 @@ public class NoahHolidayUI : MonoBehaviour
             new Vector2(-104f, 78f)
         );
 
-        Image sisterBadge = UIFactory.CreatePanel(
-            "SisterBadge",
+        Image guideBadge = UIFactory.CreatePanel(
+            "HolidayBadge",
             card.transform,
             new Color(0.20f, 0.63f, 0.66f, 1f)
         );
         SetAnchored(
-            sisterBadge.rectTransform,
+            guideBadge.rectTransform,
             new Vector2(0f, 1f),
             new Vector2(0f, 1f),
             new Vector2(54f, -220f),
             new Vector2(108f, 108f)
         );
-        Text sisterGlyph = UIFactory.CreateText(
-            "SisterGlyph",
-            sisterBadge.transform,
-            "妹",
+        Text guideGlyph = UIFactory.CreateText(
+            "HolidayGlyph",
+            guideBadge.transform,
+            "休",
             52,
             Color.white
         );
-        UIFactory.Stretch(sisterGlyph.rectTransform);
+        UIFactory.Stretch(guideGlyph.rectTransform);
 
-        Text sisterLine = UIFactory.CreateText(
-            "SisterLine",
+        Text guideLine = UIFactory.CreateText(
+            "HolidayGuide",
             card.transform,
-            "“你终于回来啦！学校把地球生物做成了拼图。\n" +
-            "老师说，记住它们的样子，也是让它们回家的第一步。”",
+            "完成地球动植物拼图即可解锁对应生物图鉴，\n" +
+            "并获得地球修复进度，继续推进最终结局。",
             27,
             new Color(0.87f, 0.96f, 0.94f, 1f),
             TextAnchor.UpperLeft
         );
-        sisterLine.horizontalOverflow = HorizontalWrapMode.Wrap;
+        guideLine.horizontalOverflow = HorizontalWrapMode.Wrap;
         SetAnchored(
-            sisterLine.rectTransform,
+            guideLine.rectTransform,
             new Vector2(0f, 1f),
             new Vector2(1f, 1f),
             new Vector2(190f, -220f),
@@ -199,7 +201,7 @@ public class NoahHolidayUI : MonoBehaviour
         Button puzzleButton = UIFactory.CreateButton(
             "OpenPuzzle",
             card.transform,
-            "完成妹妹的生物拼图  ›",
+            "完成生物拼图  ›",
             new Vector2(520f, 78f),
             new Color(0.12f, 0.55f, 0.52f, 1f),
             28
@@ -230,6 +232,12 @@ public class NoahHolidayUI : MonoBehaviour
             new Vector2(520f, 78f)
         );
         departButton.onClick.AddListener(DepartForStation);
+
+        UIFactory.CreateBackButton(
+            holidayRoot.transform,
+            ReturnToPreviousStep,
+            "HolidayBack"
+        );
     }
 
     private void BuildPuzzle()
@@ -255,7 +263,7 @@ public class NoahHolidayUI : MonoBehaviour
         Text title = UIFactory.CreateText(
             "Title",
             puzzleRoot.transform,
-            "妹妹的生物拼图  //  银杏与复绿群落",
+            "生物拼图  //  银杏与复绿群落",
             40,
             Color.white,
             TextAnchor.MiddleLeft
@@ -495,6 +503,11 @@ public class NoahHolidayUI : MonoBehaviour
             new Vector2(340f, 76f)
         );
         close.onClick.AddListener(ShowHolidayHub);
+        UIFactory.CreateBackButton(
+            resultRoot.transform,
+            () => PlayPuzzleStory(() => ShowOnly(puzzleRoot)),
+            "PuzzleResultBack"
+        );
         resultRoot.SetActive(false);
     }
 
@@ -502,7 +515,7 @@ public class NoahHolidayUI : MonoBehaviour
     {
         if (MVPGameSession.BiodiversityPuzzleCompleted)
         {
-            ShowOnly(resultRoot);
+            PlayPuzzleStory(ShowHolidayHub);
             return;
         }
 
@@ -523,7 +536,17 @@ public class NoahHolidayUI : MonoBehaviour
     {
         yield return new WaitForSecondsRealtime(0.45f);
         MVPGameSession.CompleteBiodiversityPuzzle(PuzzleReward);
-        ShowOnly(resultRoot);
+        SaveManager.TrySave();
+        PlayPuzzleStory(() => ShowOnly(puzzleRoot));
+    }
+
+    private void PlayPuzzleStory(Action onBack)
+    {
+        VideoManager.Play(
+            "puzzle_story",
+            () => ShowOnly(resultRoot),
+            onBack
+        );
     }
 
     private void ShowHolidayHub()
@@ -551,6 +574,12 @@ public class NoahHolidayUI : MonoBehaviour
         }
 
         departAction?.Invoke();
+    }
+
+    private void ReturnToPreviousStep()
+    {
+        gameObject.SetActive(false);
+        backAction?.Invoke();
     }
 
     private void ShowOnly(GameObject target)

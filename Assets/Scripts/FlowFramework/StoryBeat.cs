@@ -29,22 +29,21 @@ public struct StoryBeat
     public float durationSeconds;
 }
 
-/// <summary>空壳版剧情链清单（16 项，单一数据源）。</summary>
+/// <summary>剧情链清单（15 项，单一数据源）。</summary>
 public static class StoryBeatCatalog
 {
     public static StoryBeat[] FullChain { get; } =
     {
         Beat(FlowStage.MainMenu, BeatType.StageMarker, "main_menu", "主界面", "选择进入游戏", "FrontEnd 主菜单"),
         Beat(FlowStage.ProfileSetup, BeatType.StageMarker, "profile_setup", "档案建立", "输入修复官呼号并选择头像", "FrontEnd 档案面板"),
-        Beat(FlowStage.EndingTeaserVideo, BeatType.Video, "ending_teaser", "结局引入视频", "结局预告 / 冷开场（占位：无文件时自动跳过）", "视频位：StreamingAssets/Video/ending_teaser.mp4", 4f),
-        Beat(FlowStage.OpeningVideo, BeatType.Narrative, "opening", "正序视频（叙事卡）", "开场叙事：归墟、迁徙与地球重塑计划", "现有叙事卡系统", 0f),
+        Beat(FlowStage.OpeningVideo, BeatType.Video, "opening", "序幕视频", "开场叙事：归墟、迁徙与地球重塑计划", "视频位：StreamingAssets/Video/opening.mp4", 0f),
         Beat(FlowStage.AIIntroPopup, BeatType.Popup, "ai_intro", "AI弹窗介绍", "晨曦 AI 欢迎并介绍游戏", "PopupManager 宿主", 0f),
         Beat(FlowStage.ActOneVideo, BeatType.Video, "act_one", "第一幕视频", "第一幕剧情（占位：无文件时自动跳过）", "视频位：StreamingAssets/Video/act_one.mp4", 4f),
         Beat(FlowStage.GameIntroPopup, BeatType.Popup, "game_intro", "游戏弹窗", "三项每日任务与玩法说明", "PopupManager 宿主", 0f),
         Beat(FlowStage.DailyTutorial, BeatType.Tutorial, "daily_tutorial", "每日任务新手教程", "首个任务前弹出任务简报", "现有 TaskTutorialUI", 0f),
         Beat(FlowStage.DailyGame, BeatType.Task, "daily_game", "每日任务游戏", "轨道巡检 / 营养液投放 / 基因培育", "现有三个小游戏", 0f),
         Beat(FlowStage.HolidayPopup, BeatType.Popup, "holiday_popup", "弹窗休假", "日结算弹窗（首次返航 / 普通结算 / 结局就绪）", "现有 StationDailyReturnController", 0f),
-        Beat(FlowStage.HolidayVideo, BeatType.Narrative, "holiday", "休假视频（叙事卡）", "返航诺亚叙事", "现有叙事卡系统", 0f),
+        Beat(FlowStage.HolidayVideo, BeatType.Video, "act_two", "第二幕视频", "修复官返程诺亚", "视频位：StreamingAssets/Video/act_two.mp4", 4f),
         Beat(FlowStage.PuzzleGame, BeatType.Task, "puzzle_game", "拼图游戏", "诺亚生物 3×3 拼图（一次性奖励）", "现有 NoahHolidayUI", 0f),
         Beat(FlowStage.FreePlay, BeatType.StageMarker, "free_play", "玩家自主游玩", "空间站自由循环与后续工作日", "现有 MVPFlowController", 0f),
         Beat(FlowStage.EndingUnlock, BeatType.StageMarker, "ending_unlock", "结局解锁", "地球修复进度达到 50", "MVPGameSession.IsEndingUnlocked", 0f),

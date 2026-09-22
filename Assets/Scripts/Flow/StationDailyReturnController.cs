@@ -58,10 +58,21 @@ public class StationDailyReturnController : MonoBehaviour
         {
             flowController.AllTasksCompleted += HandleAllTasksCompleted;
         }
+
+        MVPGameSession.ProgressChanged += HandleProgressChanged;
     }
 
     private void Start()
     {
+        if (
+            MVPGameSession.IsEndingUnlocked &&
+            !MVPGameSession.EndingCompleted
+        )
+        {
+            QueueReturnPanel();
+            return;
+        }
+
         if (
             flowController != null &&
             flowController.IsFlowComplete &&
@@ -79,6 +90,8 @@ public class StationDailyReturnController : MonoBehaviour
             flowController.AllTasksCompleted -= HandleAllTasksCompleted;
         }
 
+        MVPGameSession.ProgressChanged -= HandleProgressChanged;
+
         ReleasePlayerLock();
     }
 
@@ -93,6 +106,17 @@ public class StationDailyReturnController : MonoBehaviour
     private void HandleAllTasksCompleted()
     {
         QueueReturnPanel();
+    }
+
+    private void HandleProgressChanged(int progress)
+    {
+        if (
+            progress >= MVPGameSession.EndingProgress &&
+            !MVPGameSession.EndingCompleted
+        )
+        {
+            QueueReturnPanel();
+        }
     }
 
     private void QueueReturnPanel()

@@ -18,6 +18,7 @@ public class TaskTutorialUI : MonoBehaviour
     private Image symbolBadge;
     private Button continueButton;
     private Action continueAction;
+    private Action backAction;
     private MiniGameId currentTask;
 
     public void BuildUI()
@@ -148,16 +149,27 @@ public class TaskTutorialUI : MonoBehaviour
         );
         continueButton.onClick.AddListener(Continue);
 
+        UIFactory.CreateBackButton(
+            transform,
+            Back,
+            "TutorialBack"
+        );
+
         MiniGameVisuals.PolishHierarchy(transform, MiniGameThemeId.Orbit);
         MiniGameVisuals.AddEntrance(card.gameObject);
 
         gameObject.SetActive(false);
     }
 
-    public void Show(MiniGameId id, Action onContinue)
+    public void Show(
+        MiniGameId id,
+        Action onContinue,
+        Action onBack = null
+    )
     {
         currentTask = id;
         continueAction = onContinue;
+        backAction = onBack;
         ConfigureCopy(id);
         gameObject.SetActive(true);
     }
@@ -168,6 +180,15 @@ public class TaskTutorialUI : MonoBehaviour
         gameObject.SetActive(false);
         Action action = continueAction;
         continueAction = null;
+        action?.Invoke();
+    }
+
+    private void Back()
+    {
+        gameObject.SetActive(false);
+        continueAction = null;
+        Action action = backAction;
+        backAction = null;
         action?.Invoke();
     }
 

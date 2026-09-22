@@ -10,12 +10,18 @@ using UnityEngine.UI;
 public class PopupHostController : MonoBehaviour
 {
     private System.Action onClosed;
+    private System.Action onBack;
     private Text titleText;
     private Text bodyText;
 
-    public void Show(PopupRequest request, System.Action closed)
+    public void Show(
+        PopupRequest request,
+        System.Action closed,
+        System.Action back = null
+    )
     {
         onClosed = closed;
+        onBack = back;
         BuildUI(request);
     }
 
@@ -23,6 +29,17 @@ public class PopupHostController : MonoBehaviour
     public void Close()
     {
         Confirm();
+    }
+
+    /// <summary>关闭当前弹窗并回到上一步，不触发确认回调。</summary>
+    public void Back()
+    {
+        Destroy(gameObject);
+
+        System.Action callback = onBack;
+        onBack = null;
+        onClosed = null;
+        callback?.Invoke();
     }
 
     private void BuildUI(PopupRequest request)
@@ -222,6 +239,18 @@ public class PopupHostController : MonoBehaviour
             new Vector2(330f, 78f)
         );
         confirm.onClick.AddListener(Confirm);
+
+        Button back = UIFactory.CreateBackButton(
+            card.transform,
+            Back,
+            "PopupBack"
+        );
+        RectTransform backRect = back.GetComponent<RectTransform>();
+        backRect.anchorMin = new Vector2(1f, 1f);
+        backRect.anchorMax = new Vector2(1f, 1f);
+        backRect.pivot = new Vector2(1f, 1f);
+        backRect.anchoredPosition = new Vector2(-24f, -24f);
+        back.gameObject.SetActive(onBack != null);
     }
 
     private void Confirm()
@@ -230,6 +259,7 @@ public class PopupHostController : MonoBehaviour
 
         System.Action callback = onClosed;
         onClosed = null;
+        onBack = null;
         callback?.Invoke();
     }
 

@@ -23,7 +23,7 @@ public enum FinalEndingChoice
 /// </summary>
 public static class MVPGameSession
 {
-    public const int InitialEarthProgress = 10;
+    public const int InitialEarthProgress = 0;
     public const int EndingProgress = 50;
     public const int DefaultTaskReward = 5;
 
@@ -100,6 +100,15 @@ public static class MVPGameSession
         HasPlayerProfile = false;
         ProgressChanged = null;
         WorkdayChanged = null;
+    }
+
+    /// <summary>
+    /// 将完整会话恢复为第一次启动时的状态。
+    /// 用于玩家主动选择“重新开始”；调用方应同时删除持久化存档。
+    /// </summary>
+    public static void ResetAllProgress()
+    {
+        ResetStatics();
     }
 
     public static void SetPlayerProfile(
@@ -361,7 +370,9 @@ public static class MVPGameSession
 
         CompletionHistory[id] = GetTaskCompletionCount(id) + 1;
         pendingCompletion = id;
-        AddProgress(reward);
+        // 每项每日任务统一奖励 5 点。调用方传入值仅为旧接口兼容，
+        // 不再允许自动托管或局部配置造成 4/5 点不一致。
+        AddProgress(DefaultTaskReward);
         return true;
     }
 
@@ -656,6 +667,38 @@ public static class MVPGameSession
             {
                 UniqueProgressRewards.Add(rewardId);
             }
+        }
+
+        RepairDeterministicProgressFromHistory();
+    }
+
+    /// <summary>
+    /// 旧版本曾因自动托管折扣和错误操作扣分产生 10、14、49 等偏差。
+    /// 读档时依据已完成任务历史重新结算：每项 5 点，拼图固定 10 点。
+    /// </summary>
+    private static void RepairDeterministicProgressFromHistory()
+    {
+        int completedTaskRuns = 0;
+        foreach (KeyValuePair<MiniGameId, int> pair in CompletionHistory)
+        {
+            completedTaskRuns += Mathf.Max(0, pair.Value);
+        }
+
+        int corrected = completedTaskRuns * DefaultTaskReward;
+        if (biodiversityPuzzleCompleted)
+        {
+            corrected += 10;
+        }
+
+        if (endingCompleted)
+        {
+            corrected = EndingProgress;
+        }
+
+        // 完全没有历史数据的早期/测试存档保留原值，避免无依据清零。
+        if (completedTaskRuns > 0 || biodiversityPuzzleCompleted || endingCompleted)
+        {
+            earthProgress = Mathf.Clamp(corrected, 0, EndingProgress);
         }
     }
 

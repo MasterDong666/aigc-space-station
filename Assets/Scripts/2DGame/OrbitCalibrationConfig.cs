@@ -40,8 +40,8 @@ public static class OrbitCalibrationConfig
     public const string TaskId = "orbit_inspection";
     public const int Reward = 5;
 
-    /// <summary>全自动托管时奖励效率降低 15%（奖励乘以该系数）。</summary>
-    public const float AutonomousRewardMultiplier = 0.85f;
+    /// <summary>所有完成方式统一发放完整任务奖励。</summary>
+    public const float AutonomousRewardMultiplier = 1f;
 
     /// <summary>连续手动校准达到该天数时解锁“前代修复官日志碎片”彩蛋。</summary>
     public const int ManualStreakTarget = 7;
@@ -61,10 +61,10 @@ public static class OrbitCalibrationConfig
         return count == 0 ? 0 : (MVPGameSession.Workday % count);
     }
 
-    /// <summary>全自动托管当天的实际奖励（扣除 15%）。</summary>
+    /// <summary>全自动托管与手动完成均固定奖励 5 点。</summary>
     public static int GetAutonomousReward()
     {
-        return Mathf.Max(0, Mathf.RoundToInt(Reward * AutonomousRewardMultiplier));
+        return Reward;
     }
 
     public static readonly CalibrationParam[] Params =

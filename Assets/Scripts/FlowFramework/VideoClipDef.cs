@@ -62,10 +62,28 @@ public static class VideoCatalog
         },
         new VideoClipDef
         {
+            clipId = "ending_terminate_full",
+            fileName = "full_ending_terminate.mp4",
+            displayName = "完整剧情 · 结局一",
+            fallbackTitle = "完整剧情 · 结局一",
+            fallbackBody = "完整剧情视频暂未接入。",
+            durationSeconds = 4f,
+        },
+        new VideoClipDef
+        {
+            clipId = "ending_sacrifice_full",
+            fileName = "full_ending_sacrifice.mp4",
+            displayName = "完整剧情 · 结局二",
+            fallbackTitle = "完整剧情 · 结局二",
+            fallbackBody = "完整剧情视频暂未接入。",
+            durationSeconds = 4f,
+        },
+        new VideoClipDef
+        {
             clipId = "opening",
             fileName = "opening.mp4",
-            displayName = "正序视频",
-            fallbackTitle = "【占位】正序视频",
+            displayName = "序幕",
+            fallbackTitle = "【占位】序幕视频",
             fallbackBody = "本节点当前由 FrontEnd 叙事卡呈现。\n如需视频化，请调用 VideoManager.Play(\"opening\", …) 替换叙事入口。",
             durationSeconds = 4f,
         },
@@ -80,11 +98,20 @@ public static class VideoCatalog
         },
         new VideoClipDef
         {
-            clipId = "holiday",
-            fileName = "holiday.mp4",
-            displayName = "休假视频",
-            fallbackTitle = "【占位】休假视频",
-            fallbackBody = "本节点当前由 FrontEnd 返航叙事卡呈现。\n如需视频化，请调用 VideoManager.Play(\"holiday\", …) 替换叙事入口。",
+            clipId = "act_two",
+            fileName = "act_two.mp4",
+            displayName = "第二幕",
+            fallbackTitle = "【占位】第二幕视频",
+            fallbackBody = "修复官结束本月工作，乘坐返程飞船回到诺亚。\n（正式第二幕视频尚未接入，占位卡将自动跳过）",
+            durationSeconds = 4f,
+        },
+        new VideoClipDef
+        {
+            clipId = "puzzle_story",
+            fileName = "puzzle_story.mp4",
+            displayName = "拼图剧情",
+            fallbackTitle = "【占位】拼图剧情",
+            fallbackBody = "生物拼图已经完成，新的地球物种图鉴正在解锁。",
             durationSeconds = 4f,
         },
     };
@@ -142,7 +169,11 @@ public static class VideoManager
     /// 播放剧情视频（无文件时自动降级为占位卡）。
     /// 若已有视频在播放，先跳过当前再播放新的。
     /// </summary>
-    public static bool Play(string clipId, Action onFinished)
+    public static bool Play(
+        string clipId,
+        Action onFinished,
+        Action onBack = null
+    )
     {
         VideoClipDef def = VideoCatalog.Find(clipId);
         if (string.IsNullOrEmpty(def.clipId))
@@ -158,12 +189,21 @@ public static class VideoManager
 
         GameObject hostGo = new GameObject("FlowVideoHost");
         host = hostGo.AddComponent<VideoHostController>();
-        host.Play(def, () =>
-        {
-            host = null;
-            PlaybackFinished?.Invoke(clipId);
-            onFinished?.Invoke();
-        });
+        host.Play(
+            def,
+            () =>
+            {
+                host = null;
+                PlaybackFinished?.Invoke(clipId);
+                onFinished?.Invoke();
+            },
+            () =>
+            {
+                host = null;
+                PlaybackFinished?.Invoke(clipId);
+                onBack?.Invoke();
+            }
+        );
 
         PlaybackStarted?.Invoke(clipId);
         return true;
@@ -175,6 +215,15 @@ public static class VideoManager
         if (host != null)
         {
             host.Skip();
+        }
+    }
+
+    /// <summary>返回到当前视频的上一步（仅在调用方提供返回动作时生效）。</summary>
+    public static void Back()
+    {
+        if (host != null)
+        {
+            host.Back();
         }
     }
 

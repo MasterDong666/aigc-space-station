@@ -59,6 +59,7 @@ public class NoahRemoteCommunicationController : MonoBehaviour
     [SerializeField] private Button nextButton;
     [SerializeField] private Button closeButton;
     [SerializeField] private Button puzzleButton;
+    private Button backButton;
 
     [Header("画面")]
     [SerializeField] private Sprite noahPlanetSprite;
@@ -94,6 +95,15 @@ public class NoahRemoteCommunicationController : MonoBehaviour
 
         if (panelRoot != null)
         {
+            backButton = UIFactory.CreateBackButton(
+                panelRoot.transform,
+                BackDialogue,
+                "TransmissionBack"
+            );
+        }
+
+        if (panelRoot != null)
+        {
             panelRoot.SetActive(false);
         }
     }
@@ -115,6 +125,10 @@ public class NoahRemoteCommunicationController : MonoBehaviour
         )
         {
             AdvanceDialogue();
+        }
+        else if (Input.GetKeyDown(KeyCode.LeftArrow))
+        {
+            BackDialogue();
         }
     }
 
@@ -198,6 +212,23 @@ public class NoahRemoteCommunicationController : MonoBehaviour
         }
 
         currentBeatIndex++;
+        ShowCurrentBeat();
+    }
+
+    public void BackDialogue()
+    {
+        if (!IsOpen || beats == null || beats.Count == 0)
+        {
+            return;
+        }
+
+        if (currentBeatIndex <= 0)
+        {
+            CloseTransmission();
+            return;
+        }
+
+        currentBeatIndex--;
         ShowCurrentBeat();
     }
 

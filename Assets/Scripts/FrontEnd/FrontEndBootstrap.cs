@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -26,9 +27,20 @@ public class FrontEndBootstrap : MonoBehaviour
 
     private GameObject mainPanel;
     private GameObject profilePanel;
+    private GameObject savePanel;
     private GameObject narrativePanel;
+    private GameObject mainBackdropRoot;
+    private GameObject secondaryBackdropRoot;
     private InputField nameInput;
     private Text profileHint;
+    private Text savePlayerName;
+    private Text saveProgress;
+    private Text saveRouteHint;
+    private RawImage saveAvatar;
+    private Button loadSaveButton;
+    private Button previousSaveButton;
+    private Button nextSaveButton;
+    private Text saveSlotCounter;
     private RawImage avatarPreview;
     private Text avatarPreviewLabel;
     private Texture2D[] avatarTextures;
@@ -39,13 +51,23 @@ public class FrontEndBootstrap : MonoBehaviour
     private Text narrativeProgress;
     private Text narrativeContinueLabel;
     private Text mainStatusText;
+    private Text mainProgressPercentText;
+    private Image mainProgressFill;
     private NoahHolidayUI holidayUI;
     private EndingChoiceUI endingUI;
     private Button[] avatarButtons;
     private NarrativeSlide[] activeSlides = Array.Empty<NarrativeSlide>();
     private Action narrativeCompleted;
     private int slideIndex;
+    private int selectedSaveSlotIndex;
+    private List<SaveSlotSummary> availableSaveSlots = new();
     private string selectedAvatar = "RESTORER_A";
+    private static readonly string[] AvatarRoleNames =
+    {
+        "男修复官",
+        "女修复官",
+        "狗狗修复官",
+    };
 
     private void Awake()
     {
@@ -60,6 +82,7 @@ public class FrontEndBootstrap : MonoBehaviour
         BuildBackdrop(canvas.transform);
         BuildMainPanel(canvas.transform);
         BuildProfilePanel(canvas.transform);
+        BuildSavePanel(canvas.transform);
         BuildNarrativePanel(canvas.transform);
         BuildExtendedFlow(canvas.transform);
         CinematicUIVisuals.PolishHierarchy(
@@ -89,11 +112,17 @@ public class FrontEndBootstrap : MonoBehaviour
         }
 
         GameFlowManager.HookProgressListener();
+        MVPGameSession.ProgressChanged += HandleMainProgressChanged;
 
         if (mainPanel.activeSelf)
         {
             GameFlowManager.SetStage(FlowStage.MainMenu, "Awake");
         }
+    }
+
+    private void OnDestroy()
+    {
+        MVPGameSession.ProgressChanged -= HandleMainProgressChanged;
     }
 
 #if UNITY_EDITOR
@@ -125,143 +154,107 @@ public class FrontEndBootstrap : MonoBehaviour
 
     private void BuildBackdrop(Transform parent)
     {
+        mainBackdropRoot = CreateFullPanel("MainBackdrop", parent);
         CinematicUIVisuals.AddBackdrop(
-            parent,
+            mainBackdropRoot.transform,
             "FrontendArt/MainHero",
-            new Color(0.015f, 0.035f, 0.08f, 0.20f),
+            new Color(0.015f, 0.035f, 0.08f, 0.06f),
             "FrontEndHero"
         );
 
-        Text coordinates = UIFactory.CreateText(
-            "Coordinates",
-            parent,
-            "EARTH RESTORATION NETWORK  //  03.20 LY  //  YEAR 2749",
-            15,
-            new Color(0.77f, 0.92f, 0.96f, 0.82f),
-            TextAnchor.MiddleLeft
-        );
-        SetAnchored(
-            coordinates.rectTransform,
-            new Vector2(0f, 1f),
-            new Vector2(1f, 1f),
-            new Vector2(48f, -24f),
-            new Vector2(-96f, 38f)
-        );
+        secondaryBackdropRoot = CreateFullPanel("SecondaryBackdrop", parent);
+        AddSecondaryBackdrop(secondaryBackdropRoot.transform, "FrontEndSecondaryHero");
+        secondaryBackdropRoot.SetActive(false);
     }
 
     private void BuildMainPanel(Transform parent)
     {
         mainPanel = CreateFullPanel("MainMenu", parent);
 
-        Image storyCard = CinematicUIVisuals.CreateCard(
-            "MainStoryCard",
+        Text englishTitle = UIFactory.CreateText(
+            "EnglishTitle",
             mainPanel.transform,
-            new Color(0.035f, 0.09f, 0.15f, 0.78f),
-            new Vector2(790f, 690f)
-        );
-        SetAnchored(
-            storyCard.rectTransform,
-            new Vector2(0f, 0.5f),
-            new Vector2(0f, 0.5f),
-            new Vector2(72f, 0f),
-            new Vector2(790f, 690f)
-        );
-        CinematicUIVisuals.AddEntrance(storyCard.gameObject);
-
-        Text eyebrow = UIFactory.CreateText(
-            "Eyebrow",
-            storyCard.transform,
-            "PROJECT  EARTH  //  第七十九任修复官任期",
-            20,
-            UIPalette.Accent,
-            TextAnchor.MiddleLeft
-        );
-        SetAnchored(
-            eyebrow.rectTransform,
-            new Vector2(0f, 1f),
-            new Vector2(0f, 1f),
-            new Vector2(52f, -62f),
-            new Vector2(680f, 38f)
-        );
-
-        Text title = UIFactory.CreateText(
-            "Title",
-            storyCard.transform,
-            "地 球 重 塑 计 划",
-            74,
+            "PROJECT EARTH",
+            43,
             UIPalette.TextMain,
-            TextAnchor.MiddleLeft
+            TextAnchor.MiddleCenter
         );
+        englishTitle.fontStyle = FontStyle.Bold;
         SetAnchored(
-            title.rectTransform,
-            new Vector2(0f, 1f),
-            new Vector2(0f, 1f),
-            new Vector2(48f, -124f),
-            new Vector2(690f, 110f)
-        );
-
-        Text subtitle = UIFactory.CreateText(
-            "Subtitle",
-            storyCard.transform,
-            "两颗星球相隔 3.2 光年。\n七十八任修复官之后，重返地球的选择交到你手中。",
-            29,
-            UIPalette.TextDim,
-            TextAnchor.UpperLeft
-        );
-        SetAnchored(
-            subtitle.rectTransform,
-            new Vector2(0f, 1f),
-            new Vector2(0f, 1f),
-            new Vector2(54f, -270f),
-            new Vector2(660f, 150f)
-        );
-
-        Image status = UIFactory.CreatePanel(
-            "StatusCard",
-            storyCard.transform,
-            new Color(0.08f, 0.20f, 0.25f, 0.82f)
-        );
-        SetAnchored(
-            status.rectTransform,
-            new Vector2(0f, 0f),
-            new Vector2(0f, 0f),
-            new Vector2(52f, 150f),
-            new Vector2(680f, 120f)
+            englishTitle.rectTransform,
+            new Vector2(0.5f, 1f),
+            new Vector2(0.5f, 1f),
+            new Vector2(0f, -322f),
+            new Vector2(720f, 58f)
         );
 
         mainStatusText = UIFactory.CreateText(
-            "StatusText",
-            status.transform,
+            "EarthProgressLabel",
+            mainPanel.transform,
             string.Empty,
-            23,
-            new Color(0.62f, 0.91f, 0.94f, 1f),
-            TextAnchor.MiddleLeft
+            27,
+            UIPalette.TextMain,
+            TextAnchor.MiddleCenter
         );
         SetAnchored(
             mainStatusText.rectTransform,
-            Vector2.zero,
-            Vector2.one,
-            new Vector2(30f, 0f),
-            new Vector2(-60f, 0f)
+            new Vector2(0.5f, 0f),
+            new Vector2(0.5f, 0f),
+            new Vector2(0f, 68f),
+            new Vector2(700f, 42f)
         );
-        UpdateMainStatus();
+
+        Image progressTrack = UIFactory.CreateProgressBar(
+            "EarthProgressTrack",
+            mainPanel.transform,
+            new Vector2(780f, 18f),
+            out mainProgressFill
+        );
+        progressTrack.color = new Color(0.03f, 0.08f, 0.15f, 0.92f);
+        mainProgressFill.color = new Color(0.45f, 0.88f, 1f, 1f);
+        SetAnchored(
+            progressTrack.rectTransform,
+            new Vector2(0.5f, 0f),
+            new Vector2(0.5f, 0f),
+            new Vector2(-32f, 28f),
+            new Vector2(780f, 16f)
+        );
+        MiniGameVisuals.Round(progressTrack);
+
+        mainProgressPercentText = UIFactory.CreateText(
+            "EarthProgressPercent",
+            mainPanel.transform,
+            string.Empty,
+            24,
+            new Color(0.58f, 0.88f, 1f, 1f),
+            TextAnchor.MiddleLeft
+        );
+        SetAnchored(
+            mainProgressPercentText.rectTransform,
+            new Vector2(0.5f, 0f),
+            new Vector2(0.5f, 0f),
+            new Vector2(405f, 28f),
+            new Vector2(110f, 38f)
+        );
 
         Button enter = UIFactory.CreateButton(
             "EnterGame",
-            storyCard.transform,
-            "启程，成为修复官  ›",
-            new Vector2(360f, 82f),
-            new Color(0.94f, 0.46f, 0.24f, 1f),
+            mainPanel.transform,
+            "启程  成为修复官  ›",
+            new Vector2(460f, 88f),
+            new Color(0.96f, 0.20f, 0.06f, 1f),
             32
         );
         SetAnchored(
             enter.GetComponent<RectTransform>(),
-            new Vector2(0f, 0f),
-            new Vector2(0f, 0f),
-            new Vector2(52f, 42f),
-            new Vector2(360f, 82f)
+            new Vector2(0.5f, 0.5f),
+            new Vector2(0.5f, 0.5f),
+            new Vector2(0f, -185f),
+            new Vector2(460f, 88f)
         );
         enter.onClick.AddListener(ShowProfile);
+
+        UpdateMainStatus();
 
         UIManager.Register("MainMenu", mainPanel);
     }
@@ -269,6 +262,7 @@ public class FrontEndBootstrap : MonoBehaviour
     private void BuildProfilePanel(Transform parent)
     {
         profilePanel = CreateFullPanel("ProfileSetup", parent);
+        AddSecondaryBackdrop(profilePanel.transform, "ProfileBackdrop");
 
         Image profileVeil = UIFactory.CreatePanel(
             "ProfileVeil",
@@ -356,7 +350,6 @@ public class FrontEndBootstrap : MonoBehaviour
             Resources.Load<Texture2D>("FrontendArt/RestorerC"),
         };
         string[] ids = { "RESTORER_A", "RESTORER_B", "RESTORER_C" };
-        string[] labels = { "079-A\n轨道蓝", "079-B\n生态青", "079-C\n基因紫" };
 
         for (int i = 0; i < avatarButtons.Length; i++)
         {
@@ -365,7 +358,7 @@ public class FrontEndBootstrap : MonoBehaviour
                 "Avatar_" + ids[i],
                 card.transform,
                 string.Empty,
-                new Vector2(200f, 150f),
+                new Vector2(200f, 210f),
                 i == 0 ? UIPalette.AccentDim : UIPalette.PanelLight,
                 24
             );
@@ -374,7 +367,7 @@ public class FrontEndBootstrap : MonoBehaviour
                 new Vector2(0f, 1f),
                 new Vector2(0f, 1f),
                 new Vector2(72f + i * 225f, -388f),
-                new Vector2(200f, 150f)
+                new Vector2(200f, 210f)
             );
             avatarButtons[i].onClick.AddListener(
                 () => SelectAvatar(ids[index], index)
@@ -390,10 +383,10 @@ public class FrontEndBootstrap : MonoBehaviour
             );
             SetAnchored(
                 portrait.rectTransform,
-                Vector2.zero,
-                Vector2.one,
-                new Vector2(4f, 38f),
-                new Vector2(-8f, -42f)
+                new Vector2(0.5f, 1f),
+                new Vector2(0.5f, 1f),
+                new Vector2(0f, -10f),
+                new Vector2(164f, 164f)
             );
             Image labelPill = UIFactory.CreatePanel(
                 "AvatarLabelCard",
@@ -405,12 +398,12 @@ public class FrontEndBootstrap : MonoBehaviour
                 Vector2.zero,
                 new Vector2(1f, 0f),
                 Vector2.zero,
-                new Vector2(0f, 40f)
+                new Vector2(0f, 42f)
             );
             Text avatarLabelText = UIFactory.CreateText(
                 "AvatarName",
                 labelPill.transform,
-                labels[i].Replace("\n", "  ·  "),
+                "079-" + (char)('A' + i) + "  ·  " + AvatarRoleNames[i],
                 18,
                 Color.white
             );
@@ -439,16 +432,16 @@ public class FrontEndBootstrap : MonoBehaviour
         );
         SetAnchored(
             avatarPreview.rectTransform,
-            new Vector2(0f, 0.22f),
-            new Vector2(1f, 1f),
-            new Vector2(16f, 16f),
-            new Vector2(-32f, -32f)
+            new Vector2(0.5f, 1f),
+            new Vector2(0.5f, 1f),
+            new Vector2(0f, -24f),
+            new Vector2(432f, 432f)
         );
 
         avatarPreviewLabel = UIFactory.CreateText(
             "PreviewLabel",
             previewCard.transform,
-            "第七十九任地球修复官  ·  079-A\nPERSONNEL RECORD // ACTIVE",
+            "男修复官  ·  079-A\nPERSONNEL RECORD // ACTIVE",
             21,
             UIPalette.TextDim
         );
@@ -503,12 +496,245 @@ public class FrontEndBootstrap : MonoBehaviour
         );
         confirm.onClick.AddListener(ConfirmProfile);
 
+        Button openSave = UIFactory.CreateButton(
+            "OpenSave",
+            card.transform,
+            "读取存档",
+            new Vector2(260f, 80f),
+            new Color(0.10f, 0.43f, 0.55f, 1f),
+            27
+        );
+        SetAnchored(
+            openSave.GetComponent<RectTransform>(),
+            new Vector2(0f, 0f),
+            new Vector2(0f, 0f),
+            new Vector2(482f, 32f),
+            new Vector2(260f, 80f)
+        );
+        openSave.onClick.AddListener(ShowSavePanel);
+
+        UIFactory.CreateBackButton(
+            profilePanel.transform,
+            () => ShowOnly(mainPanel),
+            "ProfileBack"
+        );
+
         UIManager.Register("ProfileSetup", profilePanel);
+    }
+
+    private void BuildSavePanel(Transform parent)
+    {
+        savePanel = CreateFullPanel("SaveSelection", parent);
+        AddSecondaryBackdrop(savePanel.transform, "SaveBackdrop");
+
+        Image veil = UIFactory.CreatePanel(
+            "SaveVeil",
+            savePanel.transform,
+            new Color(0.01f, 0.025f, 0.055f, 0.62f)
+        );
+        UIFactory.Stretch(veil.rectTransform);
+
+        Image card = CinematicUIVisuals.CreateCard(
+            "SaveCard",
+            savePanel.transform,
+            new Color(0.045f, 0.105f, 0.15f, 0.97f),
+            new Vector2(1120f, 620f)
+        );
+        SetAnchored(
+            card.rectTransform,
+            new Vector2(0.5f, 0.5f),
+            new Vector2(0.5f, 0.5f),
+            Vector2.zero,
+            new Vector2(1120f, 620f)
+        );
+
+        Text title = UIFactory.CreateText(
+            "Title",
+            card.transform,
+            "选择修复官存档",
+            46,
+            UIPalette.TextMain,
+            TextAnchor.MiddleLeft
+        );
+        SetAnchored(
+            title.rectTransform,
+            new Vector2(0f, 1f),
+            new Vector2(1f, 1f),
+            new Vector2(58f, -42f),
+            new Vector2(-116f, 70f)
+        );
+
+        previousSaveButton = UIFactory.CreateButton(
+            "PreviousSave",
+            card.transform,
+            "‹ 上一个",
+            new Vector2(125f, 52f),
+            new Color(0.08f, 0.28f, 0.36f, 1f),
+            20
+        );
+        SetAnchored(
+            previousSaveButton.GetComponent<RectTransform>(),
+            new Vector2(0f, 1f),
+            new Vector2(0f, 1f),
+            new Vector2(745f, -50f),
+            new Vector2(125f, 52f)
+        );
+        previousSaveButton.onClick.AddListener(() => ChangeSaveSlot(-1));
+
+        saveSlotCounter = UIFactory.CreateText(
+            "SaveSlotCounter",
+            card.transform,
+            "0 / 0",
+            20,
+            UIPalette.TextDim,
+            TextAnchor.MiddleCenter
+        );
+        SetAnchored(
+            saveSlotCounter.rectTransform,
+            new Vector2(0f, 1f),
+            new Vector2(0f, 1f),
+            new Vector2(875f, -50f),
+            new Vector2(90f, 52f)
+        );
+
+        nextSaveButton = UIFactory.CreateButton(
+            "NextSave",
+            card.transform,
+            "下一个 ›",
+            new Vector2(125f, 52f),
+            new Color(0.08f, 0.28f, 0.36f, 1f),
+            20
+        );
+        SetAnchored(
+            nextSaveButton.GetComponent<RectTransform>(),
+            new Vector2(0f, 1f),
+            new Vector2(0f, 1f),
+            new Vector2(970f, -50f),
+            new Vector2(125f, 52f)
+        );
+        nextSaveButton.onClick.AddListener(() => ChangeSaveSlot(1));
+
+        Image slot = CinematicUIVisuals.CreateCard(
+            "SaveSlot",
+            card.transform,
+            new Color(0.02f, 0.07f, 0.105f, 0.98f),
+            new Vector2(1000f, 350f)
+        );
+        SetAnchored(
+            slot.rectTransform,
+            new Vector2(0.5f, 0.5f),
+            new Vector2(0.5f, 0.5f),
+            new Vector2(0f, -18f),
+            new Vector2(1000f, 350f)
+        );
+
+        saveAvatar = CreateRawImage(
+            "SaveAvatar",
+            slot.transform,
+            avatarTextures[0],
+            Color.white
+        );
+        SetAnchored(
+            saveAvatar.rectTransform,
+            new Vector2(0f, 0.5f),
+            new Vector2(0f, 0.5f),
+            new Vector2(30f, 0f),
+            new Vector2(290f, 290f)
+        );
+
+        savePlayerName = UIFactory.CreateText(
+            "SavePlayerName",
+            slot.transform,
+            string.Empty,
+            36,
+            Color.white,
+            TextAnchor.MiddleLeft
+        );
+        SetAnchored(
+            savePlayerName.rectTransform,
+            new Vector2(0f, 1f),
+            new Vector2(1f, 1f),
+            new Vector2(355f, -45f),
+            new Vector2(-390f, 58f)
+        );
+
+        saveProgress = UIFactory.CreateText(
+            "SaveProgress",
+            slot.transform,
+            string.Empty,
+            25,
+            UIPalette.TextDim,
+            TextAnchor.UpperLeft
+        );
+        SetAnchored(
+            saveProgress.rectTransform,
+            new Vector2(0f, 1f),
+            new Vector2(1f, 1f),
+            new Vector2(355f, -125f),
+            new Vector2(-390f, 105f)
+        );
+
+        saveRouteHint = UIFactory.CreateText(
+            "SaveRouteHint",
+            slot.transform,
+            string.Empty,
+            21,
+            new Color(0.45f, 0.88f, 0.82f, 1f),
+            TextAnchor.UpperLeft
+        );
+        SetAnchored(
+            saveRouteHint.rectTransform,
+            new Vector2(0f, 0f),
+            new Vector2(1f, 0f),
+            new Vector2(355f, 40f),
+            new Vector2(-390f, 82f)
+        );
+
+        loadSaveButton = UIFactory.CreateButton(
+            "LoadSave",
+            slot.transform,
+            "进入此存档  ›",
+            new Vector2(300f, 84f),
+            new Color(0.10f, 0.55f, 0.48f, 1f),
+            26
+        );
+        SetAnchored(
+            loadSaveButton.GetComponent<RectTransform>(),
+            new Vector2(1f, 0.5f),
+            new Vector2(1f, 0.5f),
+            new Vector2(-35f, 0f),
+            new Vector2(300f, 84f)
+        );
+        loadSaveButton.onClick.AddListener(LoadSelectedSave);
+
+        Text note = UIFactory.CreateText(
+            "SaveNote",
+            card.transform,
+            "读取存档将跳过已经完成的前置剧情。",
+            19,
+            UIPalette.TextDim,
+            TextAnchor.MiddleCenter
+        );
+        SetAnchored(
+            note.rectTransform,
+            new Vector2(0f, 0f),
+            new Vector2(1f, 0f),
+            new Vector2(0f, 24f),
+            new Vector2(0f, 42f)
+        );
+
+        UIFactory.CreateBackButton(
+            savePanel.transform,
+            ShowProfile,
+            "SaveSelectionBack"
+        );
+        UIManager.Register("SaveSelection", savePanel);
     }
 
     private void BuildNarrativePanel(Transform parent)
     {
         narrativePanel = CreateFullPanel("Narrative", parent);
+        AddSecondaryBackdrop(narrativePanel.transform, "NarrativeBackdrop");
 
         Image narrativeVeil = UIFactory.CreatePanel(
             "NarrativeVeil",
@@ -677,6 +903,12 @@ public class FrontEndBootstrap : MonoBehaviour
         );
         skip.onClick.AddListener(FinishNarrative);
 
+        UIFactory.CreateBackButton(
+            narrativePanel.transform,
+            BackNarrative,
+            "NarrativeBack"
+        );
+
         UIManager.Register("Narrative", narrativePanel);
     }
 
@@ -704,7 +936,105 @@ public class FrontEndBootstrap : MonoBehaviour
         nameInput.text = MVPGameSession.HasPlayerProfile
             ? MVPGameSession.PlayerName
             : string.Empty;
+        if (MVPGameSession.HasPlayerProfile)
+        {
+            selectedAvatar = MVPGameSession.AvatarId;
+            int avatarIndex = selectedAvatar == "RESTORER_B"
+                ? 1
+                : selectedAvatar == "RESTORER_C" ? 2 : 0;
+            SelectAvatar(selectedAvatar, avatarIndex);
+        }
         ShowOnly(profilePanel);
+    }
+
+    private void ShowSavePanel()
+    {
+        availableSaveSlots = SaveManager.GetSaveSlots();
+        selectedSaveSlotIndex = 0;
+        RefreshSelectedSaveSlot();
+        ShowOnly(savePanel);
+    }
+
+    private void ChangeSaveSlot(int direction)
+    {
+        if (availableSaveSlots.Count <= 1)
+        {
+            return;
+        }
+
+        selectedSaveSlotIndex = (
+            selectedSaveSlotIndex + direction + availableSaveSlots.Count
+        ) % availableSaveSlots.Count;
+        RefreshSelectedSaveSlot();
+    }
+
+    private void RefreshSelectedSaveSlot()
+    {
+        bool available = availableSaveSlots.Count > 0;
+        SaveSlotSummary slot = available
+            ? availableSaveSlots[selectedSaveSlotIndex]
+            : default;
+
+        savePlayerName.text = available
+            ? slot.PlayerName + " 修复官"
+            : "暂无可读取的存档";
+        saveProgress.text = available
+            ? "地球修复进度  " + slot.EarthProgress + " / " +
+              MVPGameSession.EndingProgress + "\n第 " + slot.Workday +
+              " 工作日"
+            : "完成身份创建后，游戏会自动保存为独立存档。";
+        saveRouteHint.text = available
+            ? (slot.EarthProgress >= MVPGameSession.EndingProgress
+                ? "读取后直接进入最终结局选择"
+                : "读取后直接返回空间站继续每日任务")
+            : string.Empty;
+        saveAvatar.texture = available
+            ? GetAvatarTexture(slot.AvatarId)
+            : avatarTextures[0];
+        saveAvatar.color = available
+            ? Color.white
+            : new Color(1f, 1f, 1f, 0.18f);
+        loadSaveButton.interactable = available;
+        previousSaveButton.interactable = availableSaveSlots.Count > 1;
+        nextSaveButton.interactable = availableSaveSlots.Count > 1;
+        saveSlotCounter.text = available
+            ? (selectedSaveSlotIndex + 1) + " / " + availableSaveSlots.Count
+            : "0 / 0";
+    }
+
+    private Texture2D GetAvatarTexture(string avatarId)
+    {
+        int index = avatarId == "RESTORER_B"
+            ? 1
+            : avatarId == "RESTORER_C" ? 2 : 0;
+        return avatarTextures[index];
+    }
+
+    private void LoadSelectedSave()
+    {
+        if (availableSaveSlots.Count == 0)
+        {
+            ShowSavePanel();
+            return;
+        }
+
+        string saveId = availableSaveSlots[selectedSaveSlotIndex].SaveId;
+        if (
+            !SaveManager.TryLoadIntoSession(saveId) ||
+            !MVPGameSession.HasPlayerProfile
+        )
+        {
+            ShowSavePanel();
+            return;
+        }
+
+        if (MVPGameSession.EarthProgress >= MVPGameSession.EndingProgress)
+        {
+            ShowEndingChoiceFromSave();
+            return;
+        }
+
+        SceneTransitionManager.EnterStationHub();
     }
 
     private void ConfirmProfile()
@@ -720,6 +1050,8 @@ public class FrontEndBootstrap : MonoBehaviour
             return;
         }
 
+        MVPGameSession.ResetAllProgress();
+        SaveManager.BeginNewSave();
         MVPGameSession.SetPlayerProfile(enteredName, selectedAvatar);
         SaveManager.TrySave();
         StartOpeningSequence();
@@ -730,7 +1062,7 @@ public class FrontEndBootstrap : MonoBehaviour
         selectedAvatar = id;
         avatarPreview.texture = avatarTextures[selectedIndex];
         avatarPreviewLabel.text =
-            "第七十九任地球修复官  ·  079-" +
+            AvatarRoleNames[selectedIndex] + "  ·  079-" +
             (char)('A' + selectedIndex) +
             "\nPERSONNEL RECORD // ACTIVE";
 
@@ -786,15 +1118,14 @@ public class FrontEndBootstrap : MonoBehaviour
         );
     }
 
-    /// <summary>开场序列：结局引入视频 → 正序视频/叙事卡 →（AI 弹窗在完成后弹出）。</summary>
+    /// <summary>开场序列：序幕视频/叙事卡 →（AI 弹窗在完成后弹出）。</summary>
     private void StartOpeningSequence()
     {
-        GameFlowManager.SetStage(FlowStage.EndingTeaserVideo, "confirm profile");
-        VideoManager.Play("ending_teaser", () =>
-        {
-            GameFlowManager.SetStage(FlowStage.OpeningVideo, "teaser done");
-            PlayOpeningVideoOrNarrative();
-        });
+        // 身份确认后立刻退出档案界面。后续视频与弹窗只叠加在公共背景上，
+        // 避免仍可看到或误触创建角色面板。
+        ShowOnly(null);
+        GameFlowManager.SetStage(FlowStage.OpeningVideo, "confirm profile");
+        PlayOpeningVideoOrNarrative();
     }
 
     /// <summary>
@@ -805,11 +1136,15 @@ public class FrontEndBootstrap : MonoBehaviour
     {
         if (VideoManager.HasClip("opening"))
         {
-            VideoManager.Play("opening", () =>
-            {
-                MVPGameSession.MarkOpeningCompleted();
-                ShowAIIntroPopup();
-            });
+            VideoManager.Play(
+                "opening",
+                () =>
+                {
+                    MVPGameSession.MarkOpeningCompleted();
+                    ShowAIIntroPopup();
+                },
+                ShowProfile
+            );
             return;
         }
 
@@ -822,7 +1157,8 @@ public class FrontEndBootstrap : MonoBehaviour
         GameFlowManager.SetStage(FlowStage.AIIntroPopup, "opening done");
         PopupManager.Show(
             PopupRequests.AIIntro(MVPGameSession.PlayerName),
-            PlayActOneVideo
+            PlayActOneVideo,
+            PlayOpeningVideoOrNarrative
         );
     }
 
@@ -830,66 +1166,53 @@ public class FrontEndBootstrap : MonoBehaviour
     private void PlayActOneVideo()
     {
         GameFlowManager.SetStage(FlowStage.ActOneVideo, "ai intro closed");
-        VideoManager.Play("act_one", ShowGameIntroPopup);
+        VideoManager.Play(
+            "act_one",
+            ShowGameIntroPopup,
+            ShowAIIntroPopup
+        );
     }
 
     /// <summary>游戏介绍弹窗，确认后完成开场并进入空间站。</summary>
     private void ShowGameIntroPopup()
     {
         GameFlowManager.SetStage(FlowStage.GameIntroPopup, "act one done");
-        PopupManager.Show(PopupRequests.GameIntro(), () =>
-        {
-            SaveManager.TrySave();
-            SceneTransitionManager.EnterStationHub();
-        });
+        PopupManager.Show(
+            PopupRequests.GameIntro(),
+            () =>
+            {
+                SaveManager.TrySave();
+                SceneTransitionManager.EnterStationHub();
+            },
+            PlayActOneVideo
+        );
     }
 
     private void StartFirstReturnNarrative()
     {
         GameFlowManager.SetStage(FlowStage.HolidayVideo, "first return");
+        ShowOnly(null);
+        PlayActTwoVideo();
+    }
 
-        // 接入 holiday.mp4（存在则播放并跳过返航叙事卡；缺失则回退既有叙事卡）。
-        if (VideoManager.HasClip("holiday"))
-        {
-            VideoManager.Play("holiday", () =>
-            {
-                MVPGameSession.CompleteFirstReturn();
-                ShowHolidayFlow();
-            });
-            return;
-        }
+    private void PlayActTwoVideo()
+    {
+        VideoManager.Play(
+            "act_two",
+            ShowHolidayIntroPopup,
+            StartFirstReturnNarrative
+        );
+    }
 
-        NarrativeSlide[] slides =
-        {
-            new(
-                "本月最后一个工作日",
-                "三项修复任务已经完成。返程飞船与空间站完成对接，" +
-                "舱门在气密提示音中缓缓关闭。",
-                "归墟同步轨道  ·  返航准备"
-            ),
-            new(
-                "返航诺亚",
-                "飞船离开归墟同步轨道。远方的诺亚星逐渐占满舷窗，" +
-                "城市、森林与湖泊重新出现在视野中。",
-                "诺亚航线  ·  家园信标已锁定"
-            ),
-            new(
-                "休假生活已解锁",
-                "欢迎 " + MVPGameSession.PlayerName +
-                " 修复官回到诺亚。休假期间可以完成地球动植物拼图、" +
-                "解锁图鉴，并继续积累地球修复进度。",
-                "诺亚生活  ·  生物图鉴已上线"
-            )
-        };
-
-        PlayNarrative(
-            "RETURN TO NOAH",
-            slides,
-            () =>
-            {
-                MVPGameSession.CompleteFirstReturn();
-                ShowHolidayFlow();
-            }
+    private void ShowHolidayIntroPopup()
+    {
+        MVPGameSession.CompleteFirstReturn();
+        SaveManager.TrySave();
+        GameFlowManager.SetStage(FlowStage.HolidayPopup, "act two done");
+        PopupManager.Show(
+            PopupRequests.HolidayIntro(MVPGameSession.PlayerName),
+            ShowHolidayFlow,
+            PlayActTwoVideo
         );
     }
 
@@ -903,7 +1226,8 @@ public class FrontEndBootstrap : MonoBehaviour
                 GameFlowManager.SetStage(FlowStage.FreePlay, "holiday depart");
                 MVPGameSession.BeginNextWorkday();
                 SceneTransitionManager.EnterStationHub();
-            }
+            },
+            ShowHolidayIntroPopup
         );
     }
 
@@ -911,11 +1235,28 @@ public class FrontEndBootstrap : MonoBehaviour
     {
         GameFlowManager.SetStage(FlowStage.EndingChoice, "final choice");
         ShowOnly(null);
-        endingUI.Show(() =>
-        {
-            GameFlowManager.SetStage(FlowStage.MainMenu, "ending back");
-            ShowOnly(mainPanel);
-        });
+        endingUI.Show(
+            () =>
+            {
+                GameFlowManager.SetStage(FlowStage.MainMenu, "ending back");
+                ShowOnly(mainPanel);
+            },
+            () => SceneTransitionManager.EnterStationHub()
+        );
+    }
+
+    private void ShowEndingChoiceFromSave()
+    {
+        GameFlowManager.SetStage(FlowStage.EndingChoice, "load completed save");
+        ShowOnly(null);
+        endingUI.ShowChoiceDirect(
+            () =>
+            {
+                GameFlowManager.SetStage(FlowStage.MainMenu, "ending back");
+                ShowOnly(mainPanel);
+            },
+            () => SceneTransitionManager.EnterStationHub()
+        );
     }
 
     private void PlayNarrative(
@@ -942,6 +1283,19 @@ public class FrontEndBootstrap : MonoBehaviour
 
         slideIndex++;
         PresentSlide();
+    }
+
+    private void BackNarrative()
+    {
+        if (slideIndex > 0)
+        {
+            slideIndex--;
+            PresentSlide();
+            return;
+        }
+
+        narrativeCompleted = null;
+        ShowProfile();
     }
 
     private void PresentSlide()
@@ -973,8 +1327,19 @@ public class FrontEndBootstrap : MonoBehaviour
 
     private void ShowOnly(GameObject target)
     {
+        if (mainBackdropRoot != null)
+        {
+            mainBackdropRoot.SetActive(target == mainPanel);
+        }
+
+        if (secondaryBackdropRoot != null)
+        {
+            secondaryBackdropRoot.SetActive(target == null);
+        }
+
         mainPanel.SetActive(target == mainPanel);
         profilePanel.SetActive(target == profilePanel);
+        savePanel.SetActive(target == savePanel);
         narrativePanel.SetActive(target == narrativePanel);
 
         if (holidayUI != null)
@@ -995,18 +1360,31 @@ public class FrontEndBootstrap : MonoBehaviour
 
     private void UpdateMainStatus()
     {
-        if (mainStatusText == null)
+        if (
+            mainStatusText == null ||
+            mainProgressFill == null ||
+            mainProgressPercentText == null
+        )
         {
             return;
         }
 
-        string ending = MVPGameSession.EndingCompleted
-            ? "\n最终档案  " + GetEndingLabel(MVPGameSession.EndingChoice)
-            : string.Empty;
+        int progress = Mathf.Clamp(
+            MVPGameSession.EarthProgress,
+            0,
+            MVPGameSession.EndingProgress
+        );
+        float normalized = progress / (float)MVPGameSession.EndingProgress;
         mainStatusText.text =
-            "归墟同步轨道空间站  ·  ONLINE\n地球修复进度  " +
-            MVPGameSession.EarthProgress + " / " +
-            MVPGameSession.EndingProgress + ending;
+            "地球修复进度  " + progress + " / " +
+            MVPGameSession.EndingProgress;
+        UIFactory.SetProgressFill(mainProgressFill, normalized);
+        mainProgressPercentText.text = Mathf.RoundToInt(normalized * 100f) + "%";
+    }
+
+    private void HandleMainProgressChanged(int progress)
+    {
+        UpdateMainStatus();
     }
 
     private static string GetEndingLabel(FinalEndingChoice choice)
@@ -1023,6 +1401,16 @@ public class FrontEndBootstrap : MonoBehaviour
         RectTransform rect = UIFactory.CreateRect(name, parent);
         UIFactory.Stretch(rect);
         return rect.gameObject;
+    }
+
+    private static void AddSecondaryBackdrop(Transform parent, string name)
+    {
+        CinematicUIVisuals.AddBackdrop(
+            parent,
+            "FrontendArt/SecondaryHero",
+            new Color(0.01f, 0.025f, 0.05f, 0.18f),
+            name
+        );
     }
 
     private static T CreateFlowModule<T>(string name, Transform parent)

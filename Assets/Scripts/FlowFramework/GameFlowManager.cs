@@ -89,4 +89,10 @@ public static class GameFlowManager
         progressHookInstalled = false;
         StageChanged = null;
     }
+
+    /// <summary>重新开始游戏时清空跨场景阶段历史。</summary>
+    public static void ResetRuntimeState()
+    {
+        ResetForPlay();
+    }
 }

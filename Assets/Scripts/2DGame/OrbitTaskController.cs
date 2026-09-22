@@ -560,7 +560,7 @@ public class OrbitTaskController : MonoBehaviour
 
     /// <summary>
     /// 完成任务。手动方式计入连续手动天数并可能触发日志彩蛋；
-    /// 全自动托管当天奖励 -15%，且不计入手动连击。
+    /// 全自动托管与手动完成都固定奖励 5 点；托管不计入手动连击。
     /// </summary>
     private void CompleteTask(bool autonomous)
     {
@@ -601,7 +601,7 @@ public class OrbitTaskController : MonoBehaviour
 
             statusText.color = UIPalette.Ok;
             statusText.text = autonomous
-                ? "已全自动托管完成。奖励效率 -15%（+" + reward + " 点）"
+                ? "已全自动托管完成（+" + reward + " 点）。"
                 : "运维报告已提交（+" + reward + " 点）。";
 
             ReportSubmitted?.Invoke(reward);

@@ -81,7 +81,7 @@ public static class FlowStageInfo
             case FlowStage.DailyTutorial: return "每日任务新手教程";
             case FlowStage.DailyGame: return "每日任务游戏";
             case FlowStage.HolidayPopup: return "弹窗休假";
-            case FlowStage.HolidayVideo: return "休假视频";
+            case FlowStage.HolidayVideo: return "第二幕视频";
             case FlowStage.PuzzleGame: return "拼图游戏";
             case FlowStage.FreePlay: return "玩家自主游玩";
             case FlowStage.EndingUnlock: return "结局解锁";

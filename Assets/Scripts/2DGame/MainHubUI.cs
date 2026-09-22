@@ -93,7 +93,7 @@ public class MainHubUI : MonoBehaviour
         progressValueText = UIFactory.CreateText(
             "TxtProgressValue",
             card.transform,
-            "10 / 50",
+            "0 / 50",
             52,
             UIPalette.Accent
         );
@@ -242,7 +242,10 @@ public class MainHubUI : MonoBehaviour
 
         int value = progress.EarthProgress;
         progressValueText.text = value + " / " + MVPGameSession.EndingProgress;
-        progressFill.fillAmount = value / (float)MVPGameSession.EndingProgress;
+        UIFactory.SetProgressFill(
+            progressFill,
+            value / (float)MVPGameSession.EndingProgress
+        );
 
         // 结局解锁红点 + 独立结局按钮（进度达到 50 后出现/可用）
         bool endingUnlocked = value >= MVPGameSession.EndingProgress;

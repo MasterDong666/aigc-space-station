@@ -50,6 +50,22 @@ public static class PopupRequests
             accentHex = "#73D7B3",
         };
     }
+
+    public static PopupRequest HolidayIntro(string playerName)
+    {
+        return new PopupRequest
+        {
+            popupId = "holiday_intro",
+            eyebrow = "NOAH HOLIDAY LIFE",
+            title = "休假生活已解锁",
+            body =
+                "欢迎" + playerName + "修复官来到休假生活，在这里除每日任务以外，" +
+                "可以通过完成地球动植物拼图解锁图鉴，获得地球修复进度值来解锁" +
+                "最终结局，快去看看吧！",
+            confirmLabel = "完成生物拼图  ›",
+            accentHex = "#73D7B3",
+        };
+    }
 }
 
 /// <summary>
@@ -62,6 +78,7 @@ public static class PopupManager
     private static PopupHostController host;
     private static PopupRequest queuedRequest;
     private static System.Action queuedCallback;
+    private static System.Action queuedBackCallback;
     private static bool hasQueued;
 
     public static bool IsShowing => host != null;
@@ -69,34 +86,54 @@ public static class PopupManager
     public static event Action<string> PopupOpened;
     public static event Action<string> PopupClosed;
 
-    public static void Show(PopupRequest request, System.Action onClosed = null)
+    public static void Show(
+        PopupRequest request,
+        System.Action onClosed = null,
+        System.Action onBack = null
+    )
     {
         if (host != null)
         {
             queuedRequest = request;
             queuedCallback = onClosed;
+            queuedBackCallback = onBack;
             hasQueued = true;
             return;
         }
 
         GameObject hostGo = new GameObject("FlowPopupHost");
         host = hostGo.AddComponent<PopupHostController>();
-        host.Show(request, () =>
-        {
-            host = null;
-            PopupClosed?.Invoke(request.popupId);
-            onClosed?.Invoke();
-
-            if (hasQueued)
+        host.Show(
+            request,
+            () =>
             {
+                host = null;
+                PopupClosed?.Invoke(request.popupId);
+                onClosed?.Invoke();
+
+                if (hasQueued)
+                {
+                    hasQueued = false;
+                    PopupRequest next = queuedRequest;
+                    System.Action nextCallback = queuedCallback;
+                    System.Action nextBackCallback = queuedBackCallback;
+                    queuedRequest = default;
+                    queuedCallback = null;
+                    queuedBackCallback = null;
+                    Show(next, nextCallback, nextBackCallback);
+                }
+            },
+            () =>
+            {
+                host = null;
                 hasQueued = false;
-                PopupRequest next = queuedRequest;
-                System.Action nextCallback = queuedCallback;
                 queuedRequest = default;
                 queuedCallback = null;
-                Show(next, nextCallback);
+                queuedBackCallback = null;
+                PopupClosed?.Invoke(request.popupId);
+                onBack?.Invoke();
             }
-        });
+        );
 
         PopupOpened?.Invoke(request.popupId);
     }
@@ -107,6 +144,15 @@ public static class PopupManager
         if (host != null)
         {
             host.Close();
+        }
+    }
+
+    /// <summary>返回到当前弹窗的上一步（仅在调用方提供返回动作时生效）。</summary>
+    public static void Back()
+    {
+        if (host != null)
+        {
+            host.Back();
         }
     }
 }

@@ -552,24 +552,10 @@ public class EcologyNutrientTaskController : MonoBehaviour
         {
             SelectedTierId = tier.id;
             MistakeCount++;
-            ApplyEfficiencyPenalty();
 
             mapStatusText.color = UIPalette.Warn;
-            mapStatusText.text = "浓度不匹配（修复进度 -" + WrongOperationPenalty + "）。错误操作不会记为成功，请重试。";
+            mapStatusText.text = "浓度不匹配。错误操作不会扣除修复进度，请重试。";
             resetTierButton.gameObject.SetActive(true);
-        }
-    }
-
-    /// <summary>
-    /// 错误浓度反馈：选择明显错误的浓度时，通过权威进度系统扣除少量修复进度
-    /// （WrongOperationPenalty，默认 1，可配置）。下限为 0。
-    /// </summary>
-    private void ApplyEfficiencyPenalty()
-    {
-        GameProgressManager progress = GameProgressManager.Instance;
-        if (progress != null)
-        {
-            progress.DeductProgress(WrongOperationPenalty);
         }
     }
 

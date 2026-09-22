@@ -14,8 +14,12 @@ public class VideoHostController : MonoBehaviour
 {
     private VideoClipDef def;
     private System.Action onFinished;
+    private System.Action onBack;
     private bool finished;
     private Coroutine routine;
+    private VideoPlayer player;
+    private RenderTexture renderTexture;
+    private bool fallbackStarted;
 
     private Text titleText;
     private Text bodyText;
@@ -24,10 +28,15 @@ public class VideoHostController : MonoBehaviour
 
     public string ClipId => def.clipId;
 
-    public void Play(VideoClipDef clipDef, System.Action callback)
+    public void Play(
+        VideoClipDef clipDef,
+        System.Action callback,
+        System.Action backCallback = null
+    )
     {
         def = clipDef;
         onFinished = callback;
+        onBack = backCallback;
         BuildUI();
 
         if (VideoManager.HasClip(def.clipId))
@@ -44,6 +53,30 @@ public class VideoHostController : MonoBehaviour
     public void Skip()
     {
         Finish();
+    }
+
+    /// <summary>终止当前视频并回到流程的上一步，不触发完成回调。</summary>
+    public void Back()
+    {
+        if (finished)
+        {
+            return;
+        }
+
+        finished = true;
+
+        if (routine != null)
+        {
+            StopCoroutine(routine);
+            routine = null;
+        }
+
+        Destroy(gameObject);
+
+        System.Action callback = onBack;
+        onBack = null;
+        onFinished = null;
+        callback?.Invoke();
     }
 
     private void BuildUI()
@@ -63,45 +96,48 @@ public class VideoHostController : MonoBehaviour
             "VideoCard",
             canvas.transform,
             CinematicUIVisuals.Midnight,
-            new Vector2(980f, 560f)
+            new Vector2(1320f, 820f)
         );
         SetAnchored(
             card.rectTransform,
             new Vector2(0.5f, 0.5f),
             new Vector2(0.5f, 0.5f),
             Vector2.zero,
-            new Vector2(980f, 560f)
+            new Vector2(1320f, 820f)
         );
 
         videoImage = CinematicUIVisuals.AddFramedArt(
             "VideoFrame",
             card.transform,
             null,
-            new Vector2(920f, 420f),
+            new Vector2(1240f, 698f),
             CinematicUIVisuals.DeepInk
         );
+        AspectRatioFitter aspect = videoImage.gameObject.AddComponent<AspectRatioFitter>();
+        aspect.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
+        aspect.aspectRatio = 16f / 9f;
         SetAnchored(
             videoImage.transform.parent.GetComponent<RectTransform>(),
             new Vector2(0.5f, 1f),
             new Vector2(0.5f, 1f),
-            new Vector2(0f, -44f),
-            new Vector2(920f, 420f)
+            new Vector2(0f, -34f),
+            new Vector2(1240f, 698f)
         );
 
         badgeText = UIFactory.CreateText(
             "VideoBadge",
             card.transform,
             def.displayName + "  ·  CINEMATIC",
-            20,
-            CinematicUIVisuals.Sky,
+            22,
+            UIPalette.TextMain,
             TextAnchor.MiddleCenter
         );
         SetAnchored(
             badgeText.rectTransform,
-            new Vector2(0.5f, 1f),
-            new Vector2(0.5f, 1f),
-            new Vector2(0f, -480f),
-            new Vector2(600f, 32f)
+            new Vector2(0.5f, 0f),
+            new Vector2(0.5f, 0f),
+            new Vector2(0f, 42f),
+            new Vector2(720f, 40f)
         );
 
         titleText = UIFactory.CreateText(
@@ -132,22 +168,44 @@ public class VideoHostController : MonoBehaviour
             "VideoSkip",
             card.transform,
             "跳过  ›",
-            new Vector2(260f, 64f),
+            new Vector2(220f, 64f),
             UIPalette.AccentDim,
             26
         );
         SetAnchored(
             skip.GetComponent<RectTransform>(),
-            new Vector2(0.5f, 0f),
-            new Vector2(0.5f, 0f),
-            new Vector2(0f, 36f),
-            new Vector2(260f, 64f)
+            new Vector2(1f, 0f),
+            new Vector2(1f, 0f),
+            new Vector2(-30f, 24f),
+            new Vector2(220f, 64f)
         );
         skip.onClick.AddListener(Skip);
+
+        Button back = UIFactory.CreateBackButton(
+            card.transform,
+            Back,
+            "VideoBack"
+        );
+        SetAnchored(
+            back.GetComponent<RectTransform>(),
+            new Vector2(0f, 0f),
+            new Vector2(0f, 0f),
+            new Vector2(30f, 24f),
+            new Vector2(156f, 52f)
+        );
+        back.gameObject.SetActive(onBack != null);
     }
 
     private void StartPlaceholder()
     {
+        if (fallbackStarted || finished)
+        {
+            return;
+        }
+
+        fallbackStarted = true;
+        videoImage.texture = null;
+        videoImage.color = CinematicUIVisuals.DeepInk;
         badgeText.text = "占位视频 · 无文件时将自动跳过";
         titleText.text = def.fallbackTitle;
         bodyText.text = def.fallbackBody;
@@ -156,7 +214,7 @@ public class VideoHostController : MonoBehaviour
 
     private IEnumerator PlaceholderRoutine()
     {
-        yield return new WaitForSeconds(def.durationSeconds);
+        yield return new WaitForSecondsRealtime(def.durationSeconds);
         Finish();
     }
 
@@ -165,20 +223,27 @@ public class VideoHostController : MonoBehaviour
         badgeText.text = def.displayName + "  ·  正在播放";
         titleText.text = string.Empty;
         bodyText.text = string.Empty;
+        // AddFramedArt 在没有纹理时会用深色占位。接入真实视频后必须恢复白色，
+        // 否则 RawImage 会将视频与深色相乘，导致画面看起来近乎全黑。
+        videoImage.color = Color.white;
 
-        VideoPlayer player = gameObject.AddComponent<VideoPlayer>();
+        player = gameObject.AddComponent<VideoPlayer>();
         player.playOnAwake = false;
         player.skipOnDrop = true;
+        player.audioOutputMode = VideoAudioOutputMode.Direct;
         player.renderMode = VideoRenderMode.RenderTexture;
-        player.targetTexture = new RenderTexture(1280, 720, 24);
-        videoImage.texture = player.targetTexture;
+        renderTexture = new RenderTexture(1920, 1080, 0);
+        renderTexture.Create();
+        player.targetTexture = renderTexture;
+        videoImage.texture = renderTexture;
         player.url = Path.Combine(
             Application.streamingAssetsPath,
             "Video",
             def.fileName
         );
-        player.prepareCompleted += p => p.Play();
-        player.loopPointReached += p => Finish();
+        player.prepareCompleted += HandlePrepared;
+        player.loopPointReached += HandlePlaybackFinished;
+        player.errorReceived += HandlePlaybackError;
 
         player.Prepare();
         routine = StartCoroutine(PrepareTimeoutRoutine());
@@ -186,10 +251,64 @@ public class VideoHostController : MonoBehaviour
 
     private IEnumerator PrepareTimeoutRoutine()
     {
-        yield return new WaitForSeconds(6f);
+        yield return new WaitForSecondsRealtime(10f);
 
         // 准备超时：降级为占位卡，保证流程不卡死
-        badgeText.text = "视频加载失败 · 已降级为占位";
+        StartPlaybackFallback("视频加载超时");
+    }
+
+    private void HandlePrepared(VideoPlayer preparedPlayer)
+    {
+        if (finished || fallbackStarted)
+        {
+            return;
+        }
+
+        if (routine != null)
+        {
+            StopCoroutine(routine);
+            routine = null;
+        }
+
+        preparedPlayer.EnableAudioTrack(0, true);
+        preparedPlayer.SetDirectAudioMute(0, false);
+        preparedPlayer.SetDirectAudioVolume(0, 1f);
+        preparedPlayer.Play();
+    }
+
+    private void HandlePlaybackFinished(VideoPlayer _)
+    {
+        Finish();
+    }
+
+    private void HandlePlaybackError(VideoPlayer _, string message)
+    {
+        Debug.LogWarning("[VIDEO] 播放失败 " + def.clipId + "：" + message);
+        StartPlaybackFallback("视频播放失败");
+    }
+
+    private void StartPlaybackFallback(string reason)
+    {
+        if (fallbackStarted || finished)
+        {
+            return;
+        }
+
+        if (routine != null)
+        {
+            StopCoroutine(routine);
+            routine = null;
+        }
+
+        if (player != null)
+        {
+            player.Stop();
+        }
+
+        fallbackStarted = true;
+        videoImage.texture = null;
+        videoImage.color = CinematicUIVisuals.DeepInk;
+        badgeText.text = reason + " · 已自动降级";
         titleText.text = def.fallbackTitle;
         bodyText.text = def.fallbackBody;
         routine = StartCoroutine(PlaceholderRoutine());
@@ -214,7 +333,27 @@ public class VideoHostController : MonoBehaviour
 
         System.Action callback = onFinished;
         onFinished = null;
+        onBack = null;
         callback?.Invoke();
+    }
+
+    private void OnDestroy()
+    {
+        if (player != null)
+        {
+            player.prepareCompleted -= HandlePrepared;
+            player.loopPointReached -= HandlePlaybackFinished;
+            player.errorReceived -= HandlePlaybackError;
+            player.Stop();
+            player.targetTexture = null;
+        }
+
+        if (renderTexture != null)
+        {
+            renderTexture.Release();
+            Destroy(renderTexture);
+            renderTexture = null;
+        }
     }
 
     private static void SetAnchored(
